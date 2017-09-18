@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
-"""AlumnesGenerator5.5.py
+"""AlumnesGenerator5.6.py
 Fitxers d'entrada:
     - alumnes.csv:
         * CSV extret de SAGA amb els camps:
@@ -42,10 +42,10 @@ def correu_puig_generator():
 
             # Encapçalats
             correu_writer.writerow(
-                                   ["EMAIL",
-                                    "FIRST NAME",
-                                    "LAST NAME",
-                                    "PASSWORD"])
+                                   ["First Name",
+                                    "Last Name"
+                                    "Email Address",
+                                    "Password"])
 
             for alumnes_row in alumnes_reader:
                 alumnes_row = suppress_number_in_dict_keys(**alumnes_row)
@@ -67,9 +67,9 @@ def correu_puig_generator():
                 # Restitueix els espais als '_' generats
                 # per compound_surname_processor
                 correu_writer.writerow(
-                                       [email,
-                                        first_name.replace('_', ' '),
+                                       [first_name.replace('_', ' '),
                                         last_name.replace('_', ' '),
+                                        email,
                                         PASSWORD])
 
 
@@ -86,11 +86,11 @@ def moodle_user_generator():
 
             # Encapçalats
             usuari_moodle_writer.writerow(
-                                          ["USERNAME",
+                                          ["username",
                                            "PASSWORD",
-                                           "FIRST NAME",
-                                           "LAST NAME",
-                                           "EMAIL"])
+                                           "firstname",
+                                           "lastname",
+                                           "email"])
 
             for correuRow in correu_reader:
                 email = correuRow["EMAIL"]
@@ -101,9 +101,9 @@ def moodle_user_generator():
 
                 usuari_moodle_writer.writerow(
                                               [username,
-                                               PASSWORD,
                                                first_name,
                                                last_name,
+                                               PASSWORD,
                                                email])
 
 
@@ -160,8 +160,7 @@ def name_splitter(fullName):
 
     # Alumnes amb 3 cognoms
     if surnames.count(' ') == 2 and\
-       fullName[fullName.index(' ', fullName.index(' ') + 1)
-                + 1] != ',':
+       fullName[fullName.index(' ', fullName.index(' ') + 1) + 1] != ',':
         # Alumnes amb 2 noms
         try:
             first_name = fullName.split(' ')[3] + ' ' + fullName.split(' ')[4]
