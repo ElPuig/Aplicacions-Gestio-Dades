@@ -96,9 +96,7 @@ def moodle_user_generator():
                 email = correuRow["Email Address"]
                 first_name = correuRow["First Name"]
                 last_name = correuRow["Last Name"]
-
                 username = email.split('@')[0]
-
                 usuari_moodle_writer.writerow(
                                               [username,
                                                first_name,
