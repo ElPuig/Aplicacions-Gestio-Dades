@@ -129,7 +129,7 @@ def get_student_data(**saga_dict):
     nombre_id = get_id_number(saga_dict["DOC. IDENTITAT"])
     tipus_id = get_id_card_type(saga_dict["DOC. IDENTITAT"])
     nacionalitat = get_nationality(saga_dict["NACIONALITAT"])
-    telefon = saga_dict["ALTRES TELÈFONS"]
+    telefon = remove_phone_prefixes(saga_dict["ALTRES TELÈFONS"])
     email = saga_dict["CORREU ELECTRÒNIC"]
     in_charge = get_person_in_charge(saga_dict["RESPONSABLE 1"],
                                      saga_dict["PARENTIU RESP. 1"],
@@ -139,7 +139,7 @@ def get_student_data(**saga_dict):
                                      saga_dict["TELÈFON RESP. 2"])
     adreca = get_address(saga_dict["ADREÇA"])
     poblacio = saga_dict["LOCALITAT"]
-    cp = saga_dict["CP"]
+    cp = format_zip_code(saga_dict["CP"])
     mode_acces = saga_dict["PROCEDÈNCIA ACADÈMICA"]
     treballa = saga_dict["TREBALLA"]
     convalidacions = saga_dict["CONVALIDACIONS"]
@@ -269,6 +269,21 @@ def get_nationality(country):
     return country.title()
 
 
+def remove_phone_prefixes(phones_string):
+    """def remove_phone_prefixes(phones_string)
+    Descripció: Retorna els llistats de telèfons sense el prefixe.
+    Entrada:    String amb telèfon/s amb prefix en cas dels fixos
+                i informació del/s titular.
+    Sortida:    String amb un o múltiples telèfons i informació del titular.
+    Exemple:    "933866109 (fix), +34-+34-+34-+34-933866109 (alumne),
+                +34-631593343 (alumne)" retorna "933866109 (fix), 933866109
+                (alumne), 631593343 (alumne)"
+    """
+    return re.sub(r'([+34-]*)''([0-9a-zAa-zA-ZÀ-ÿ ,()]*)',
+                  r'\2',
+                  phones_string)
+
+
 def get_address(address):
     """def get_address(address)
     Descripció: Retorna l'adreça sense espais de sobra.
@@ -277,6 +292,17 @@ def get_address(address):
     Exemple:    "CR  Pirineus  6     " retorna "CR Pirineus 6".
     """
     return ' '.join(address.split())
+
+
+def format_zip_code(zip_code):
+    """def format_zip_code(zip_code)
+    Descripció: Retorna el CP amb 5 dígits amb independència de què el primer
+                sigui un "0".
+    Entrada:    String amb el CP.
+    Sortida:    String amb el CP en 5 dígits.
+    Exemple:    "8012" retorna "08012".
+    """
+    return zip_code.zfill(5)
 
 
 def get_person_in_charge(

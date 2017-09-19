@@ -43,7 +43,7 @@ def correu_puig_generator():
             # Encapçalats
             correu_writer.writerow(
                                    ["First Name",
-                                    "Last Name"
+                                    "Last Name",
                                     "Email Address",
                                     "Password"])
 
@@ -93,12 +93,10 @@ def moodle_user_generator():
                                            "email"])
 
             for correuRow in correu_reader:
-                email = correuRow["EMAIL"]
-                first_name = correuRow["FIRST NAME"]
-                last_name = correuRow["LAST NAME"]
-
+                email = correuRow["Email Address"]
+                first_name = correuRow["First Name"]
+                last_name = correuRow["Last Name"]
                 username = email.split('@')[0]
-
                 usuari_moodle_writer.writerow(
                                               [username,
                                                first_name,
