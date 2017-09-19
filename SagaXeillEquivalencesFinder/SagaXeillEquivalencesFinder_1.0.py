@@ -293,7 +293,9 @@ def non_special_chars(name):
 def remove_special_chars(s):
     """def remove_special_chars(s)
     Descripció: Elimina accents i dièresi, i converteix totes les lletres en
-                minúscules.
+                minúscules; a més subsititueix les «ch» per «c», i les «th» per
+                «t» per homogeneitzar noms escrits de diferent manera (per
+                exemple, «Christian» per «Cristian» o «Judith» per «Judit»).
     Entrada:    String.
     Sortida:    String.
     """
@@ -309,13 +311,20 @@ def remove_special_chars(s):
     for k, v in accented_chars_equivalences:
         s = s.replace(k, v)
 
+    s = s.replace("ch", "c")
+
+    s = s.replace("th", "t")
+
     return s
 
 
 def just_consonants(s):
     """def just_consonants(s)
     Descripció: Elimina totes les vocals i caràcters especials en un text, i
-                converteix totes les lletres en minúscules.
+                converteix totes les lletres en minúscules; a més subsititueix
+                les «ch» per «c», i les «th» per «t» per homogeneitzar noms
+                escrits de diferent manera (per exemple, «Christian» per
+                «Cristian» o «Judith» per «Judit»).
     Entrada:    String.
     Sortida:    String.
     """
@@ -331,7 +340,8 @@ def just_consonants(s):
                ("·", ""), ("�", ""), ("º", ""), ("³", ""), ("¡", ""),
                ("±", ""), ("€", ""), ("©", ""), ("¿", ""), ("·", ""),
                ("”", ""), ("…", ""), ("  ", " "), (",", ""), ("™", ""),
-               ("ª", ""), (".", ""), (" ,", ","), ("\xa0", ""), ("\xa1", ""),
+               ("ª", ""), (".", ""), (" ,", ","),  ('', ''),
+               ('\xa0', ''), ('\xa1', ''),
                ("\xa2", ""), ("\xa3", ""), ("\xa4", ""), ("\xa5", ""),
                ("\xa6", ""), ("\xa7", ""), ("\xa8", ""), ("\xa9", ""),
                ("\xaa", ""), ("\xab", ""), ("\xac", ""), ("\xad", ""),
@@ -359,6 +369,10 @@ def just_consonants(s):
 
     for k, v in special_chars_equivalences:
         s = s.replace(k, v).lower()
+
+    s = s.replace("ch", "c")
+
+    s = s.replace("th", "t")
 
     return s
 
