@@ -295,7 +295,7 @@ def remove_special_chars(s):
     Descripció: Elimina accents i dièresi, i converteix totes les lletres en
                 minúscules; a més subsititueix les «ch» per «c», i les «th» per
                 «t» per homogeneitzar noms escrits de diferent manera (per
-                exemple, «Christian» per «Cristian» o «Judith» per «Judit»).
+                exemple, "Christian" per "Cristian" o "Judith" per "Judit").
     Entrada:    String.
     Sortida:    String.
     """
@@ -323,8 +323,8 @@ def just_consonants(s):
     Descripció: Elimina totes les vocals i caràcters especials en un text, i
                 converteix totes les lletres en minúscules; a més subsititueix
                 les «ch» per «c», i les «th» per «t» per homogeneitzar noms
-                escrits de diferent manera (per exemple, «Christian» per
-                «Cristian» o «Judith» per «Judit»).
+                escrits de diferent manera (per exemple, "Christian" per
+                "Cristian" o "Judith" per "Judit").
     Entrada:    String.
     Sortida:    String.
     """
