@@ -1,9 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-"""ButlletinsSplitter1.1.py
+"""
+ButlletinsSplitter1.2.py
 Fitxer d'entrada:     Fitxer PDF amb els butlletins de notes d'un grup sencer
-                      amb el nom «informe.pdf».
+                      amb el nom «informe.pdf», preparat o no per la impressió
+                      a doble cara.
 Fitxers de sortida:   Un fitxer PDF per cada alumne amb el seu butlletí i
                       reanomenat amb el seu nom.
 """
@@ -22,6 +24,7 @@ def main():
     page_num = 0
     current_student = None
 
+    # Iterates through whole PDF source file
     while page_num < total_pages:
         if current_student is None:
             page_text = butlletins_reader.getPage(page_num)
@@ -29,10 +32,13 @@ def main():
             current_student = get_student_name(page_text_string)
 
         student = current_student
-        output_file = student + '.pdf'
+        output_file = (student + '.pdf').encode('utf-8')
         output_writer = PyPDF2.PdfFileWriter()
 
-        while current_student == student and current_student is not None:
+        # Iterates through new individually created PDF file
+        while (current_student == student and
+               current_student is not None and
+               page_num <= total_pages):
             output_writer.addPage(page_text)
 
             page_num += 1
@@ -95,7 +101,7 @@ def offer_navigation_menu_for_troublesome_source_files(source_file):
     option = input("\nQuè voleu fer?:"
                    "\n\t1. Solucionar el problema i seguir "
                    "executant el programa"
-                   "\n\t2. Voleu sortir del programa"
+                   "\n\t2. Sortir del programa"
                    "\nTrieu una opció (1/2): ")
 
     if option == "1":
