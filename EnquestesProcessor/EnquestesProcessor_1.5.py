@@ -1,10 +1,11 @@
 #!/usr/bin/python3.6
 # -*- coding: UTF-8 -*-
 
-"""EnquestesProcessor_1.4:
+"""EnquestesProcessor_1.5:
 Fitxers d'entrada:
-    - alumnes-mp.csv: conté l'adreça Xeill, el nom complet i el llista dels
-                      alumnes matriculats a CF
+    - alumnes-mp.csv: llista dels alumnes matriculats a cada CF,
+                      amb el seu nom complet, l'adreça Xeill, el cicle i curs,
+                      i una «x» per cada MP al qual estigui matriculat
     - respostes.csv: descarregat des del formulari d'avaluació de Google Drive,
                      conté les valoracions dels alumnes
 Fitxers de sortida:
@@ -22,6 +23,10 @@ Fitxers de sortida:
     - temporals (opcionalment eliminables):
         * resultats_tmp.csv: conté les respostes vàlides amb la identificació
                             de l'estudiant
+
+Principals canvis d'aquesta nova versió:
+    - adaptat per nou formulari que ofereix llistats d'MP específics per
+      cada cicle, fet que augmenta el nombre de columnes al full de repostes
 """
 
 import csv
@@ -103,7 +108,12 @@ def filter_responses():
         for respostes_row in respostes_reader:
             r_email = respostes_row[1]
             r_curs = respostes_row[2]
-            r_objecte = respostes_row[3]
+            mp_index = extract_resposta_mp_index(*respostes_row[3:8])
+            r_objecte = extract_mp_number(respostes_row[3:8][mp_index])
+            arranged_respostes_row = []
+            arranged_respostes_row.extend(respostes_row[:3] +
+                                          [respostes_row[3:8][mp_index]] +
+                                          respostes_row[8:])
             email_found = False
 
             with open(SOURCE_FILE_STUDENTS_WITH_MP, 'r', encoding='utf-8')\
@@ -122,7 +132,7 @@ def filter_responses():
                                                     [alumnes_row['ALUMNE']] +
                                                     [alumnes_row['GRUP']] +
                                                     ['CICLE INCORRECTE'] +
-                                                    respostes_row)
+                                                    arranged_respostes_row)
                             error_found = True
 
                         else:
@@ -133,7 +143,7 @@ def filter_responses():
                                                     [alumnes_row['ALUMNE']] +
                                                     [alumnes_row['GRUP']] +
                                                     ['MP INCORRECTE'] +
-                                                    respostes_row)
+                                                    arranged_respostes_row)
                                 error_found = True
 
                             # Comprova que l'alumne pertany al curs
@@ -144,7 +154,7 @@ def filter_responses():
                                                     [alumnes_row['ALUMNE']] +
                                                     [alumnes_row['GRUP']] +
                                                     ['TUTORIA INCORRECTA'] +
-                                                    respostes_row)
+                                                    arranged_respostes_row)
                                 error_found = True
 
                             elif r_objecte == 'Tutoria 2n curs' and\
@@ -153,14 +163,14 @@ def filter_responses():
                                                     [alumnes_row['ALUMNE']] +
                                                     [alumnes_row['GRUP']] +
                                                     ['TUTORIA INCORRECTA'] +
-                                                    respostes_row)
+                                                    arranged_respostes_row)
                                 error_found = True
 
                         # Enregistra respostes que passin els filtres
                         if error_found is False:
                             resultats_tmp_writer.writerow(
                                                     [alumnes_row['ALUMNE']] +
-                                                    respostes_row)
+                                                    arranged_respostes_row)
 
                 # Enregistra com a errors els emails no trobats
                 if email_found is False:
@@ -168,10 +178,34 @@ def filter_responses():
                                      ['desconegut'] +
                                      ['desconegut'] +
                                      ['EMAIL INEXISTENT'] +
-                                     respostes_row)
+                                     arranged_respostes_row)
 
     errades_rec.close()
     resultats_tmp.close()
+
+
+def extract_resposta_mp_index(*mp_respostes_info):
+    """extract_resposta_mp_index(*mp_respostes)
+    Descripció: Troba l'índex amb informació sobre l'MP avaluat, el qual varia
+                depenent del cicle de l'estudiant.
+    Entrada:    ",,MP10 - Gestió logística i comercial,,".
+    Sortida:    "2".
+    """
+    return next(i for i, j in enumerate(mp_respostes_info) if j != "")
+
+
+def extract_mp_number(full_mp_name):
+    """extract_mp_number(full_mp_name)
+    Descripció: Extreu el nombre de l'MP i descarta el seu nom; en cas que
+                l'objecte avaluat sigui el centre o la tutoria retorna
+                l'objecte sense canvis.
+    Entrada:    "MP10 - Gestió logística i comercial".
+    Sortida:    "MP10".
+    """
+    if full_mp_name[:2] == "MP":
+        return full_mp_name[:4]
+    else:
+        return full_mp_name
 
 
 def filter_duplicates():
@@ -309,6 +343,7 @@ def generate_list_of_answers():
             nom_cognoms = alumnes_row[0]
             curs = alumnes_row[2]
             mpList = alumnes_row[3:]
+            mpList = [mp.lower() for mp in mpList]
 
             # Afegeix altres 2 elements a la llista per la tutoria i el centre
             mpList.extend(('x', 'x'))
@@ -325,7 +360,7 @@ def generate_list_of_answers():
             nom_cognoms = respostes_row['ALUMNE']
             email = respostes_row['EMAIL']
             curs = respostes_row['GRUP']
-            objecte = respostes_row['OBJECTE']
+            objecte = extract_mp_number(respostes_row['OBJECTE'])
 
             # Aconsegueix el llistat d'MP matriculats i respostes
             avaluatsList = alumnes_mp_dict.get(email)['objecte']
@@ -337,8 +372,8 @@ def generate_list_of_answers():
                                 ('MP07', '6'), ('MP08', '7'), ('MP09', '8'),
                                 ('MP10', '9'), ('MP11', '10'), ('MP12', '11'),
                                 ('MP13', '12'), ('MP14', '13'), ('MP15', '14'),
-                                ('MP16', '15'), ('Tutoria 1r curs', '16'),
-                                ('Tutoria 2n curs', '16'), ('El centre', '17')]
+                                ('Tutoria 1r curs', '15'),
+                                ('Tutoria 2n curs', '15'), ('El centre', '16')]
             for k, v in index_mapping_list:
                 objecte = objecte.replace(k, v)
 
@@ -358,7 +393,7 @@ def generate_list_of_answers():
                           ['CORREU', 'COGNOM/S I NOM', 'GRUP', 'MP01', 'MP02',
                            'MP03', 'MP04', 'MP05', 'MP06', 'MP07', 'MP08',
                            'MP09', 'MP10', 'MP11', 'MP12', 'MP13', 'MP14',
-                           'MP15', 'MP16', 'TUTORIA', 'CENTRE'])
+                           'MP15', 'TUTORIA', 'CENTRE'])
 
     [result_writer.writerow(
                          [k] +
