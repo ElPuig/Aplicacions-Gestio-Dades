@@ -1,7 +1,15 @@
 #!/usr/bin/python3.6
 # -*- coding: UTF-8 -*-
 
+<<<<<<< HEAD
 """AlumnesMPSagaExtractor_1.0.py
+=======
+<<<<<<< HEAD
+"""AlumnesMPSagaExtractor_1.0.py
+=======
+"""AlumnesMPSagaExtractor_1,0.py
+>>>>>>> 2e45f4b3fb64f704c5daf72869fc6e956372aa56
+>>>>>>> update
 Fitxers d'entrada:
     - resultatConsulta.csv:
         * CSV extret de SAGA amb els camps:
@@ -33,10 +41,21 @@ RESULT_FILE = 'alumnes-mp.csv'
 
 
 def generate_result_file():
-    """def generate_whole_level_file()
+<<<<<<< HEAD
+    """def generate_result_file()
     Descripció: Emplena el fitxer RESULT_FILE.
     Entrada:    Cap.
     Sortida:    Fitxer RESULT_FILE.
+=======
+    """def generate_whole_level_file()
+    Descripció: Emplena el fitxer RESULT_FILE.
+    Entrada:    Cap.
+<<<<<<< HEAD
+    Sortida:    Fitxer RESULT_FILE.
+=======
+    Sortida:    Fitxer 'fitxes_grau_complet.csv'.
+>>>>>>> 2e45f4b3fb64f704c5daf72869fc6e956372aa56
+>>>>>>> update
     """
     setup_result_file()
 
@@ -122,7 +141,11 @@ def get_mps_enrolled(grup, enrolled_subjects):
 
 
 def setup_result_file():
+<<<<<<< HEAD
+    """def setup_result_file()
+=======
     """def setup_whole_level_file()
+>>>>>>> 2e45f4b3fb64f704c5daf72869fc6e956372aa56
     Descripció: Genera el fitxer 'RESULT_FILE i emplena la
                 capçalera.
     Entrada:    Cap.
