@@ -33,7 +33,7 @@ RESULT_FILE = 'alumnes-mp.csv'
 
 
 def generate_result_file():
-    """def generate_whole_level_file()
+    """def generate_result_file()
     Descripció: Emplena el fitxer RESULT_FILE.
     Entrada:    Cap.
     Sortida:    Fitxer RESULT_FILE.
@@ -122,7 +122,7 @@ def get_mps_enrolled(grup, enrolled_subjects):
 
 
 def setup_result_file():
-    """def setup_whole_level_file()
+    """def setup_result_file()
     Descripció: Genera el fitxer 'RESULT_FILE i emplena la
                 capçalera.
     Entrada:    Cap.
