@@ -1,7 +1,7 @@
 #!/usr/bin/python3.6
 # -*- coding: UTF-8 -*-
 
-"""AlumnesMPSagaExtractor_1,0.py
+"""AlumnesMPSagaExtractor_1.0.py
 Fitxers d'entrada:
     - resultatConsulta.csv:
         * CSV extret de SAGA amb els camps:
@@ -34,9 +34,9 @@ RESULT_FILE = 'alumnes-mp.csv'
 
 def generate_result_file():
     """def generate_whole_level_file()
-    Descripció: Emplena el fitxer 'fitxes_grau_complet.csv'.
+    Descripció: Emplena el fitxer RESULT_FILE.
     Entrada:    Cap.
-    Sortida:    Fitxer 'fitxes_grau_complet.csv'.
+    Sortida:    Fitxer RESULT_FILE.
     """
     setup_result_file()
 
