@@ -1,7 +1,7 @@
 #!/usr/bin/python3.6
 # -*- coding: UTF-8 -*-
 
-"""EnquestesProcessor_1.5:
+"""EnquestesProcessor_1.5.1:
 Fitxers d'entrada:
     - alumnes-mp.csv: llista dels alumnes matriculats a cada CF,
                       amb el seu nom complet, l'adreça Xeill, el cicle i curs,
@@ -25,8 +25,12 @@ Fitxers de sortida:
                             de l'estudiant
 
 Principals canvis d'aquesta nova versió:
-    - adaptat per nou formulari que ofereix llistats d'MP específics per
-      cada cicle, fet que augmenta el nombre de columnes al full de repostes
+    - adaptat per nou formulari amb els següents canvis (respecte a v1.4):
+        * l'estudiant només especifica el seu cicle, no el seu grup
+        * s'ofereixen llistats d'MP específics per cada cicle, fet que augmenta
+          el nombre de columnes al full de repostes
+    - elimina els estudiants sense correu del fitxer
+      FILE_STUDENTS_WITH_AVALUATED_MP (respecte a v1.5)
 """
 
 import csv
@@ -123,6 +127,9 @@ def filter_responses():
                     error_found = False
                     # Busca email de l'alumne que avalua
                     if r_email == alumnes_row['CORREU']:
+                        arranged_respostes_row = retrieve_groupclass(
+                                                       alumnes_row['GRUP'],
+                                                       *arranged_respostes_row)
                         email_found = True
                         # Comprova que l'alumne pertany al cicle que avalua
                         # Comparació sense tenir en compte el grup del curs
@@ -188,7 +195,7 @@ def extract_resposta_mp_index(*mp_respostes_info):
     """extract_resposta_mp_index(*mp_respostes)
     Descripció: Troba l'índex amb informació sobre l'MP avaluat, el qual varia
                 depenent del cicle de l'estudiant.
-    Entrada:    ",,MP10 - Gestió logística i comercial,,".
+    Entrada:    [,,MP10 - Gestió logística i comercial,,].
     Sortida:    "2".
     """
     return next(i for i, j in enumerate(mp_respostes_info) if j != "")
@@ -206,6 +213,22 @@ def extract_mp_number(full_mp_name):
         return full_mp_name[:4]
     else:
         return full_mp_name
+
+
+def retrieve_groupclass(groupclass, *arranged_respostes_row):
+    """retrieve_groupclass(group, *arranged_respostes_row)
+    Descripció: Substitueix la informació del cicle pel curs i classe
+                específic al llistat que conté la informació de cada resposta
+                d'estudiant.
+    Entrada:    "ASIX2C", [,,ASIX, ... ].
+    Sortida:    [,,ASIX2C, ... ].
+    """
+    arranged_respostes_row_with_classgroup = []
+    arranged_respostes_row_with_classgroup = (
+                                             list(arranged_respostes_row[:2]) +
+                                             [groupclass] +
+                                             list(arranged_respostes_row[3:]))
+    return arranged_respostes_row_with_classgroup
 
 
 def filter_duplicates():
@@ -348,10 +371,11 @@ def generate_list_of_answers():
             # Afegeix altres 2 elements a la llista per la tutoria i el centre
             mpList.extend(('x', 'x'))
 
-            alumnes_mp_dict[email] = {}
-            alumnes_mp_dict[email]['nom_cognoms'] = nom_cognoms
-            alumnes_mp_dict[email]['curs'] = curs
-            alumnes_mp_dict[email]['objecte'] = mpList
+            if email != "":
+                alumnes_mp_dict[email] = {}
+                alumnes_mp_dict[email]['nom_cognoms'] = nom_cognoms
+                alumnes_mp_dict[email]['curs'] = curs
+                alumnes_mp_dict[email]['objecte'] = mpList
 
     with open(FILE_ANSWERS_RECORD, 'r', encoding='utf-8') as respostes:
         respostes_reader = csv.DictReader(respostes)
