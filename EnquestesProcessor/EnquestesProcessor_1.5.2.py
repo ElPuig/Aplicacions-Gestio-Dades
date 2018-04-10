@@ -1,7 +1,7 @@
 #!/usr/bin/python3.6
 # -*- coding: UTF-8 -*-
 
-"""EnquestesProcessor_1.5.1:
+"""EnquestesProcessor_1.5.2:
 Fitxers d'entrada:
     - alumnes-mp.csv: llista dels alumnes matriculats a cada CF,
                       amb el seu nom complet, l'adreça Xeill, el cicle i curs,
@@ -24,13 +24,12 @@ Fitxers de sortida:
         * resultats_tmp.csv: conté les respostes vàlides amb la identificació
                             de l'estudiant
 
-Principals canvis d'aquesta nova versió:
-    - adaptat per nou formulari amb els següents canvis (respecte a v1.4):
-        * l'estudiant només especifica el seu cicle, no el seu grup
-        * s'ofereixen llistats d'MP específics per cada cicle, fet que augmenta
-          el nombre de columnes al full de repostes
-    - elimina els estudiants sense correu del fitxer
-      FILE_STUDENTS_WITH_AVALUATED_MP (respecte a v1.5)
+Principals canvis d'aquesta nova versió (respecte a v1.5.1):
+    - corregeix un bug que permetia avaluacions d'alumnes no matricualts d'un
+      MP
+    - al fitxer FILE_ERRORS_RECORD s'afegeix el nom de l'MP en cas que l'alumne
+      avaluï un MP del qual no està matriculat
+    - afegits als comentaris
 """
 
 import csv
@@ -144,12 +143,13 @@ def filter_responses():
 
                         else:
                             # Comprova que l'alumne cursa l'MP avaluat
-                            if 'r_objecte' in alumnes_row and\
+                            if r_objecte in alumnes_row and\
                                alumnes_row[r_objecte].lower() != 'x':
                                 errades_rec_writer.writerow(
                                                     [alumnes_row['ALUMNE']] +
                                                     [alumnes_row['GRUP']] +
-                                                    ['MP INCORRECTE'] +
+                                                    ['MP INCORRECTE: ' +
+                                                     r_objecte] +
                                                     arranged_respostes_row)
                                 error_found = True
 
@@ -195,7 +195,7 @@ def extract_resposta_mp_index(*mp_respostes_info):
     """extract_resposta_mp_index(*mp_respostes)
     Descripció: Troba l'índex amb informació sobre l'MP avaluat, el qual varia
                 depenent del cicle de l'estudiant.
-    Entrada:    [,,MP10 - Gestió logística i comercial,,].
+    Entrada:    [foo, foo, "MP10 - Gestió logística i comercial", foo, foo].
     Sortida:    "2".
     """
     return next(i for i, j in enumerate(mp_respostes_info) if j != "")
@@ -220,8 +220,8 @@ def retrieve_groupclass(groupclass, *arranged_respostes_row):
     Descripció: Substitueix la informació del cicle pel curs i classe
                 específic al llistat que conté la informació de cada resposta
                 d'estudiant.
-    Entrada:    "ASIX2C", [,,ASIX, ... ].
-    Sortida:    [,,ASIX2C, ... ].
+    Entrada:    "ASIX2C", [foo,foo,"ASIX", foo, ... ].
+    Sortida:    [foo,foo, "ASIX2C",foo, ... ].
     """
     arranged_respostes_row_with_classgroup = []
     arranged_respostes_row_with_classgroup = (
