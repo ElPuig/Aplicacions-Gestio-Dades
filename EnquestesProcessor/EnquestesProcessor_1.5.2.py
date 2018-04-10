@@ -29,7 +29,6 @@ Principals canvis d'aquesta nova versió (respecte a v1.5.1):
       MP
     - al fitxer FILE_ERRORS_RECORD s'afegeix el nom de l'MP en cas que l'alumne
       avaluï un MP del qual no està matriculat
-    - afegits als comentaris
 """
 
 import csv
@@ -45,8 +44,8 @@ FILE_ANSWERS_TMP = 'resultats_tmp.csv'
 # tmp -> 0 = elimina
 #        1 = conserva
 #        2 = consulta a usuari
-OPTION_TMP_FILES = 1
-OPTION_TMP_RECORDS = 1
+OPTION_TMP_FILES = 0
+OPTION_TMP_RECORDS = 0
 # duplicates -> 0 = conserva antiga
 #               1 = conserva nova
 #               2 = consulta a usuari
@@ -220,8 +219,8 @@ def retrieve_groupclass(groupclass, *arranged_respostes_row):
     Descripció: Substitueix la informació del cicle pel curs i classe
                 específic al llistat que conté la informació de cada resposta
                 d'estudiant.
-    Entrada:    "ASIX2C", [foo,foo,"ASIX", foo, ... ].
-    Sortida:    [foo,foo, "ASIX2C",foo, ... ].
+    Entrada:    "ASIX2C", [foo, foo, "ASIX", foo, ... ].
+    Sortida:    [foo, foo, "ASIX2C", foo, ... ].
     """
     arranged_respostes_row_with_classgroup = []
     arranged_respostes_row_with_classgroup = (
