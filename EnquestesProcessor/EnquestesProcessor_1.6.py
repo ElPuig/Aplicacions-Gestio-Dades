@@ -1,7 +1,7 @@
 #!/usr/bin/python3.6
 # -*- coding: UTF-8 -*-
 
-"""EnquestesProcessor_1.5.2:
+"""EnquestesProcessor_1.6:
 Fitxers d'entrada:
     - alumnes-mp.csv: llista dels alumnes matriculats a cada CF,
                       amb el seu nom complet, l'adreça Xeill, el cicle i curs,
@@ -24,15 +24,19 @@ Fitxers de sortida:
         * resultats_tmp.csv: conté les respostes vàlides amb la identificació
                             de l'estudiant
 
-Principals canvis d'aquesta nova versió (respecte a v1.5.1):
-    - corregeix un bug que permetia avaluacions d'alumnes no matricualts d'un
-      MP
-    - al fitxer FILE_ERRORS_RECORD s'afegeix el nom de l'MP en cas que l'alumne
-      avaluï un MP del qual no està matriculat
+Principals canvis d'aquesta nova versió (respecte a v1.5.2):
+    - modificacions als fitxers d'errades:
+        * curs avaluat substituït pel cicle avaluat
+        * columna «TIMESTAMP» resituat com a darrera columna (FILE_ERRORS)
+    - reanomenament de variables i funcions per claredat
+    - correcció de bug a la funció setup_options
+    - afegida funció silent_remove per evitar errors davant l'eliminació de
+      directoris no buits
 """
 
 import csv
 import os
+import errno
 from dateutil import parser
 
 FILE_ANSWERS = 'resultats_respostes.csv'
@@ -44,12 +48,12 @@ FILE_ANSWERS_TMP = 'resultats_tmp.csv'
 # tmp -> 0 = elimina
 #        1 = conserva
 #        2 = consulta a usuari
-OPTION_TMP_FILES = 0
-OPTION_TMP_RECORDS = 0
-# duplicates -> 0 = conserva antiga
+OPTION_TMP_FILES = 1
+OPTION_TMP_RECORDS = 1
+# duplicates -> 0 = conserva primera
 #               1 = conserva nova
 #               2 = consulta a usuari
-OPTION_DUPLICATE_FILES = 1
+OPTION_DUPLICATED_ANSWERS = 1
 # reports -> 0 = no
 #            1 = sí
 #            2 = consulta a usuari
@@ -61,8 +65,8 @@ SOURCE_FILE_STUDENTS_WITH_MP = 'alumnes-mp.csv'
 SOURCE_FILE_STUDENT_ANSWERS = 'respostes.csv'
 
 
-def filter_responses():
-    """def filter_responses()
+def filter_invalid_responses():
+    """def filter_invalid_responses()
     Descripció: Filtra les respostes d'alumnes que no estiguin matriculats al
                 cicle o al MP avaluat, o que no pertanyin al curs de la tutoria
                 avaluada.
@@ -92,7 +96,7 @@ def filter_responses():
     # Encapçalats
     errades_rec_writer.writerow(
                               ['ALUMNE', 'CURS', 'MOTIU', 'TIMESTAMP', 'EMAIL',
-                               'CURS AVALUAT', 'OBJECTE', 'MP-ÍTEM1',
+                               'CICLE AVALUAT', 'OBJECTE AVALUAT', 'MP-ÍTEM1',
                                'MP-ÍTEM2', 'MP-ÍTEM3', 'MP-ÍTEM4',
                                'MP-COMENTARI', 'TUTORIA1-ÍTEM1',
                                'TUTORIA1-ÍTEM2', 'TUTORIA1-ÍTEM3',
@@ -125,7 +129,8 @@ def filter_responses():
                     error_found = False
                     # Busca email de l'alumne que avalua
                     if r_email == alumnes_row['CORREU']:
-                        arranged_respostes_row = retrieve_groupclass(
+                        arranged_respostes_row_with_groupclass =\
+                                                  retrieve_groupclass(
                                                        alumnes_row['GRUP'],
                                                        *arranged_respostes_row)
                         email_found = True
@@ -147,8 +152,7 @@ def filter_responses():
                                 errades_rec_writer.writerow(
                                                     [alumnes_row['ALUMNE']] +
                                                     [alumnes_row['GRUP']] +
-                                                    ['MP INCORRECTE: ' +
-                                                     r_objecte] +
+                                                    ['MP INCORRECTE'] +
                                                     arranged_respostes_row)
                                 error_found = True
 
@@ -175,8 +179,8 @@ def filter_responses():
                         # Enregistra respostes que passin els filtres
                         if error_found is False:
                             resultats_tmp_writer.writerow(
-                                                    [alumnes_row['ALUMNE']] +
-                                                    arranged_respostes_row)
+                                        [alumnes_row['ALUMNE']] +
+                                        arranged_respostes_row_with_groupclass)
 
                 # Enregistra com a errors els emails no trobats
                 if email_found is False:
@@ -230,13 +234,13 @@ def retrieve_groupclass(groupclass, *arranged_respostes_row):
     return arranged_respostes_row_with_classgroup
 
 
-def filter_duplicates():
-    """def filter_duplicates()
+def filter_duplicated_answerss():
+    """def filter_duplicated_answerss()
     Descripció: Filtra les respostes duplicades.
     Entrada:    Cap.
     Sortida:    Cap.
     """
-    global OPTION_DUPLICATE_FILES
+    global OPTION_DUPLICATED_ANSWERS
 
     respostes_dict = {}
     errades_dict = {}
@@ -260,14 +264,16 @@ def filter_duplicates():
                     respostes_row
 
             else:
-                if OPTION_DUPLICATE_FILES == 0:  # Conserva primera resposta
+                if OPTION_DUPLICATED_ANSWERS == 0:  # Conserva primera resposta
                     if (r_time > resposta_anterior['time']):
                         errades_dict[r_email_curs_objecte] = {}
                         errades_dict[r_email_curs_objecte]['time'] = r_time
                         errades_dict[r_email_curs_objecte][
                                                            'resposta'
                                                            ] = respostes_row
-
+                        errades_dict[r_email_curs_objecte][
+                                                 'referenced_timestamp'
+                                                 ] = resposta_anterior['time']
                     else:
                         key_errades = str(resposta_anterior) +\
                                      str(resposta_anterior['time'])
@@ -280,6 +286,9 @@ def filter_duplicates():
                                                  ] = resposta_anterior[
                                                                  'resposta'
                                                                        ]
+                        errades_dict[key_errades][
+                                                 'referenced_timestamp'
+                                                 ] = r_time
 
                         respostes_dict[r_email_curs_objecte] = {}
                         respostes_dict[r_email_curs_objecte][
@@ -289,7 +298,7 @@ def filter_duplicates():
                                                              'resposta'
                                                              ] = respostes_row
 
-                else:  # Conserva nova resposta
+                else:  # Conserva resposta més recent
                     if (r_time > resposta_anterior['time']):
                         key_errades = str(resposta_anterior) +\
                                      str(resposta_anterior['time'])
@@ -300,6 +309,9 @@ def filter_duplicates():
                                                   ] = resposta_anterior[
                                                                   'resposta'
                                                                         ]
+                        errades_dict[key_errades][
+                                                 'referenced_timestamp'
+                                                 ] = r_time
 
                         respostes_dict[r_email_curs_objecte] = {}
                         respostes_dict[r_email_curs_objecte]['time'] = r_time
@@ -310,6 +322,9 @@ def filter_duplicates():
                         errades_dict[r_email_curs_objecte]['time'] = r_time
                         errades_dict[r_email_curs_objecte]['resposta'
                                                            ] = respostes_row
+                        errades_dict[r_email_curs_objecte][
+                                                 'referenced_timestamp'
+                                                 ] = resposta_anterior['time']
 
     resultats = open(FILE_ANSWERS_RECORD, 'w', encoding='utf-8')
     resultats_writer = csv.writer(resultats)
@@ -332,17 +347,21 @@ def filter_duplicates():
     errades_rec = open(FILE_ERRORS_RECORD, 'a', encoding='utf-8')
     errades_rec_writer = csv.writer(errades_rec)
     for k, v in errades_dict.items():
-        if OPTION_DUPLICATE_FILES == 0:
+        if OPTION_DUPLICATED_ANSWERS == 0:
             errades_rec_writer.writerow(
                                 [v['resposta'][0]] +
                                 [v['resposta'][3]] +
-                                ['AVALUACIÓ POSTERIOR REPETIDA'] +
+                                ['AVALUACIÓ POSTERIOR REPETIDA' +
+                                 ' (resp. original: ' +
+                                 str(v['referenced_timestamp']) + ')'] +
                                 v['resposta'][1:])
         else:
             errades_rec_writer.writerow(
                                 [v['resposta'][0]] +
                                 [v['resposta'][3]] +
-                                ['AVALUACIÓ ANTERIOR DESCARTADA'] +
+                                ['AVALUACIÓ ANTERIOR DESCARTADA' +
+                                 ' (resp. nova: ' +
+                                 str(v['referenced_timestamp']) + ')'] +
                                 v['resposta'][1:])
     errades_rec.close()
 
@@ -444,18 +463,20 @@ def final_result_files_arranger():
             errades_writer = csv.writer(errades)
 
             # Encapçalats
-            errades_writer.writerow((['ALUMNE', 'CURS', 'MOTIU', 'TIMESTAMP',
-                                     'EMAIL', 'CURS AVALUAT', 'OBJECTE']))
+            errades_writer.writerow((['ALUMNE', 'CURS', 'MOTIU',
+                                      'EMAIL', 'CICLE AVALUAT',
+                                      'OBJECTE AVALUAT',
+                                      'TIMESTAMP']))
 
             for errades_recRow in errades_rec_reader:
                 errades_writer.writerow(
                                 [errades_recRow['ALUMNE']] +
                                 [errades_recRow['CURS']] +
                                 [errades_recRow['MOTIU']] +
-                                [errades_recRow['TIMESTAMP']] +
                                 [errades_recRow['EMAIL']] +
-                                [errades_recRow['CURS AVALUAT']] +
-                                [errades_recRow['OBJECTE']])
+                                [errades_recRow['CICLE AVALUAT']] +
+                                [errades_recRow['OBJECTE AVALUAT']] +
+                                [errades_recRow['TIMESTAMP']])
 
     with open(FILE_ANSWERS_RECORD, 'r', encoding='utf-8') as resultats_rec:
         resultats_rec_reader = csv.reader(resultats_rec)
@@ -597,70 +618,62 @@ def setup_files():
     Entrada:    Cap.
     Sortida:    Elimina fixters anteriors.
     """
-    # Elimina arxius anteriors
-    os.remove(FILE_ERRORS)\
-        if os.path.exists(FILE_ERRORS) else None
-    os.remove(FILE_ANSWERS)\
-        if os.path.exists(FILE_ANSWERS) else None
-    os.remove(FILE_STUDENTS_WITH_AVALUATED_MP)\
-        if os.path.exists(FILE_STUDENTS_WITH_AVALUATED_MP) else None
+    silent_remove(FILE_ERRORS)
 
-    os.remove(os.path.join(os.getcwd(), 'TmpFiles', FILE_ANSWERS_TMP))\
-        if os.path.exists(os.path.join(
-                                       os.getcwd(),
-                                       'TmpFiles',
-                                       FILE_ANSWERS_TMP)) else None
-    os.rmdir(os.path.join(os.getcwd(), 'TmpFiles'))\
-        if os.path.exists(os.path.join(os.getcwd(), 'TmpFiles')) else None
+    silent_remove(FILE_ANSWERS)
 
-    os.remove(os.path.join(os.getcwd(), 'RcdFiles', FILE_ERRORS_RECORD))\
-        if os.path.exists(os.path.join(
-                                       os.getcwd(),
-                                       'RcdFiles',
-                                       FILE_ERRORS_RECORD)) else None
-    os.remove(os.path.join(os.getcwd(), 'RcdFiles', FILE_ANSWERS_RECORD))\
-        if os.path.exists(os.path.join(
-                                       os.getcwd(),
-                                       'RcdFiles',
-                                       FILE_ANSWERS_RECORD)) else None
-    os.rmdir(os.path.join(os.getcwd(), 'RcdFiles')) \
-        if os.path.exists(os.path.join(os.getcwd(), 'RcdFiles')) else None
+    silent_remove(FILE_STUDENTS_WITH_AVALUATED_MP)
 
-    os.remove(os.path.join(os.getcwd(), 'Informes', REPORT_FILE_CENTRE))\
-        if os.path.exists(os.path.join(
-                                       os.getcwd(),
-                                       'Informes',
-                                       REPORT_FILE_CENTRE)) else None
-    os.remove(os.path.join(os.getcwd(), 'Informes', REPORT_FILE_ADM))\
-        if os.path.exists(os.path.join(
-                                       os.getcwd(),
-                                       'Informes',
-                                       REPORT_FILE_INF)) else None
-    os.remove(os.path.join(
-                           os.getcwd(),
-                           'Informes',
-                           REPORT_FILE_INF))\
-        if os.path.exists(os.path.join(
-                                       os.getcwd(),
-                                       'Informes',
-                                       REPORT_FILE_INF)) else None
-    os.rmdir(os.path.join(os.getcwd(), 'Informes'))\
-        if os.path.exists(os.path.join(os.getcwd(), 'Informes')) else None
+    silent_remove(os.path.join(os.getcwd(), 'TmpFiles', FILE_ANSWERS_TMP))
+
+    silent_remove(os.path.join(os.getcwd(), 'TmpFiles', FILE_ANSWERS_TMP))
+
+    silent_remove(os.path.join(os.getcwd(), 'RcdFiles', FILE_ERRORS_RECORD))
+
+    silent_remove(os.path.join(os.getcwd(), 'RcdFiles', FILE_ANSWERS_RECORD))
+
+    silent_remove(os.path.join(os.getcwd(), 'RcdFiles', FILE_ANSWERS_RECORD))
+
+    silent_remove(os.path.join(os.getcwd(), 'Informes', REPORT_FILE_CENTRE))
+
+    silent_remove(os.path.join(os.getcwd(), 'Informes', REPORT_FILE_ADM))
+
+    silent_remove(os.path.join(os.getcwd(), 'Informes', REPORT_FILE_INF))
+
+    silent_remove(os.path.join(os.getcwd(), 'Informes', REPORT_FILE_INF))
+
+
+def silent_remove(file_or_dir):
+    """def silent_remove(file_or_dir)
+    Descripció: Elimina fitxers i directoris sempre que existeixin i estiguin
+                buits.
+    Entrada:    Nom del fitxer o directori.
+    Sortida:    Eliminació de fixter o directori.
+    """
+    try:
+        os.remove(file_or_dir)
+    except OSError as e:
+        """
+        Descarta els errors per fitxer o directori no existent, o directori no
+        buit.
+        """
+        if e.errno != errno.ENOENT and e.errno != errno.ENOTEMPTY:
+            raise
 
 
 def setup_options():
     """def setup_options(
                          OPTION_TMP_FILES,
                          OPTION_TMP_RECORDS,
-                         OPTION_DUPLICATE_FILES)
+                         OPTION_DUPLICATED_ANSWERS)
     Descripció: Demana a l'usuari que definieixi les opcions no establertes.
     Entrada:    Cap.
     Sortida:    Defineix les variables globals OPTION_TMP_FILES,
-                OPTION_TMP_RECORDS, OPTION_DUPLICATE_FILES en el seu cas.
+                OPTION_TMP_RECORDS, OPTION_DUPLICATED_ANSWERS en el seu cas.
     """
     global OPTION_TMP_FILES
     global OPTION_TMP_RECORDS
-    global OPTION_DUPLICATE_FILES
+    global OPTION_DUPLICATED_ANSWERS
     global OPTION_REPORTS
 
     while OPTION_TMP_FILES != 0 and OPTION_TMP_FILES != 1:
@@ -671,12 +684,12 @@ def setup_options():
         OPTION_TMP_RECORDS = answer_from_string_to_binary(input(
                     "Voleu conservar els registres? (s/n) ").lower())
 
-    while OPTION_DUPLICATE_FILES != 0 and OPTION_DUPLICATE_FILES != 1:
-        OPTION_DUPLICATE_FILES = answer_from_string_to_binary(input(
+    while OPTION_DUPLICATED_ANSWERS != 0 and OPTION_DUPLICATED_ANSWERS != 1:
+        OPTION_DUPLICATED_ANSWERS = answer_from_string_to_binary(input(
                     "En cas de respostes duplicades, quina voleu conservar? \
                      (1: la primera, 2: l'última) ").lower())
 
-    while OPTION_REPORTS != 0 and OPTION_DUPLICATE_FILES != 1:
+    while OPTION_REPORTS != 0 and OPTION_REPORTS != 1:
         OPTION_REPORTS = answer_from_string_to_binary(input(
                     "Desitja generar els informes? (s/n) ").lower())
 
@@ -712,8 +725,7 @@ def del_tmp_and_reg_files():
                   os.path.join(os.getcwd(), FILE_ANSWERS_TMP),
                   os.path.join(os.getcwd(), 'TmpFiles', FILE_ANSWERS_TMP))
     else:  # Elimina arxius temporals
-        os.remove(FILE_ANSWERS_TMP)\
-            if os.path.exists(FILE_ANSWERS_TMP) else None
+        silent_remove(FILE_ANSWERS_TMP)
         print('Arxius temporals eliminats.')
 
     if OPTION_TMP_RECORDS == 1:  # Conserva els registres
@@ -727,10 +739,8 @@ def del_tmp_and_reg_files():
                   os.path.join(os.getcwd(), FILE_ANSWERS_RECORD),
                   os.path.join(os.getcwd(), 'RcdFiles', FILE_ANSWERS_RECORD))
     else:  # Elimina registres
-        os.remove(FILE_ERRORS_RECORD)\
-            if os.path.exists(FILE_ERRORS_RECORD) else None
-        os.remove(FILE_ANSWERS_RECORD)\
-            if os.path.exists(FILE_ANSWERS_RECORD) else None
+        silent_remove(FILE_ERRORS_RECORD)
+        silent_remove(FILE_ANSWERS_RECORD)
         print('Registres temporals eliminats.')
 
     if OPTION_REPORTS == 1:  # Genera informes
@@ -801,9 +811,9 @@ if __name__ == '__main__':
     setup_options()
     setup_files()
 
-    filter_responses()
+    filter_invalid_responses()
 
-    filter_duplicates()
+    filter_duplicated_answerss()
 
     generate_list_of_answers()
     final_result_files_arranger()
