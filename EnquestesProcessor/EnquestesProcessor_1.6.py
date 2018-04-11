@@ -48,8 +48,8 @@ FILE_ANSWERS_TMP = 'resultats_tmp.csv'
 # tmp -> 0 = elimina
 #        1 = conserva
 #        2 = consulta a usuari
-OPTION_TMP_FILES = 0
-OPTION_TMP_RECORDS = 0
+OPTION_TMP_FILES = 1
+OPTION_TMP_RECORDS = 1
 # duplicates -> 0 = conserva primera
 #               1 = conserva nova
 #               2 = consulta a usuari
@@ -234,8 +234,8 @@ def retrieve_groupclass(groupclass, *arranged_respostes_row):
     return arranged_respostes_row_with_classgroup
 
 
-def filter_duplicated_answerss():
-    """def filter_duplicated_answerss()
+def filter_duplicated_answers():
+    """def filter_duplicated_answers()
     Descripció: Filtra les respostes duplicades.
     Entrada:    Cap.
     Sortida:    Cap.
@@ -822,7 +822,7 @@ if __name__ == '__main__':
 
     filter_invalid_responses()
 
-    filter_duplicated_answerss()
+    filter_duplicated_answers()
 
     generate_list_of_answers()
     final_result_files_arranger()
