@@ -30,8 +30,8 @@ Principals canvis d'aquesta nova versió (respecte a v1.5.2):
         * columna «TIMESTAMP» resituat com a darrera columna (FILE_ERRORS)
     - reanomenament de variables i funcions per claredat
     - correcció de bug a la funció setup_options
-    - afegida funció silent_remove per evitar errors davant l'eliminació de
-      directoris no buits
+    - afegida funció file_and_dir_remover per evitar errors davant l'eliminació
+      de directoris no buits
 """
 
 import csv
@@ -48,8 +48,8 @@ FILE_ANSWERS_TMP = 'resultats_tmp.csv'
 # tmp -> 0 = elimina
 #        1 = conserva
 #        2 = consulta a usuari
-OPTION_TMP_FILES = 1
-OPTION_TMP_RECORDS = 1
+OPTION_TMP_FILES = 0
+OPTION_TMP_RECORDS = 0
 # duplicates -> 0 = conserva primera
 #               1 = conserva nova
 #               2 = consulta a usuari
@@ -611,40 +611,8 @@ def find_avaluated_object(s):
             return v
 
 
-def setup_files():
-    """def setup_files()
-    Descripció: Elimina fitxers de sortida anteriors que puguin existir al
-                directori.
-    Entrada:    Cap.
-    Sortida:    Elimina fixters anteriors.
-    """
-    silent_remove(FILE_ERRORS)
-
-    silent_remove(FILE_ANSWERS)
-
-    silent_remove(FILE_STUDENTS_WITH_AVALUATED_MP)
-
-    silent_remove(os.path.join(os.getcwd(), 'TmpFiles', FILE_ANSWERS_TMP))
-
-    silent_remove(os.path.join(os.getcwd(), 'TmpFiles', FILE_ANSWERS_TMP))
-
-    silent_remove(os.path.join(os.getcwd(), 'RcdFiles', FILE_ERRORS_RECORD))
-
-    silent_remove(os.path.join(os.getcwd(), 'RcdFiles', FILE_ANSWERS_RECORD))
-
-    silent_remove(os.path.join(os.getcwd(), 'RcdFiles', FILE_ANSWERS_RECORD))
-
-    silent_remove(os.path.join(os.getcwd(), 'Informes', REPORT_FILE_CENTRE))
-
-    silent_remove(os.path.join(os.getcwd(), 'Informes', REPORT_FILE_ADM))
-
-    silent_remove(os.path.join(os.getcwd(), 'Informes', REPORT_FILE_INF))
-
-    silent_remove(os.path.join(os.getcwd(), 'Informes', REPORT_FILE_INF))
-
-
-def silent_remove(file_or_dir):
-    """def silent_remove(file_or_dir)
+def file_and_dir_remover(file_or_dir):
+    """def file_and_dir_remover(file_or_dir)
     Descripció: Elimina fitxers i directoris sempre que existeixin i estiguin
                 buits.
     Entrada:    Nom del fitxer o directori.
@@ -659,6 +627,47 @@ def silent_remove(file_or_dir):
         """
         if e.errno != errno.ENOENT and e.errno != errno.ENOTEMPTY:
             raise
+
+
+def setup_files():
+    """def setup_files()
+    Descripció: Elimina fitxers de sortida anteriors que puguin existir al
+                directori.
+    Entrada:    Cap.
+    Sortida:    Elimina fixters anteriors.
+    """
+    file_and_dir_remover(FILE_ERRORS)
+
+    file_and_dir_remover(FILE_ANSWERS)
+
+    file_and_dir_remover(FILE_STUDENTS_WITH_AVALUATED_MP)
+
+    file_and_dir_remover(
+        os.path.join(os.getcwd(), 'TmpFiles', FILE_ANSWERS_TMP))
+
+    file_and_dir_remover(
+        os.path.join(os.getcwd(), 'TmpFiles', FILE_ANSWERS_TMP))
+
+    file_and_dir_remover(
+        os.path.join(os.getcwd(), 'RcdFiles', FILE_ERRORS_RECORD))
+
+    file_and_dir_remover(
+        os.path.join(os.getcwd(), 'RcdFiles', FILE_ANSWERS_RECORD))
+
+    file_and_dir_remover(
+        os.path.join(os.getcwd(), 'RcdFiles', FILE_ANSWERS_RECORD))
+
+    file_and_dir_remover(
+        os.path.join(os.getcwd(), 'Informes', REPORT_FILE_CENTRE))
+
+    file_and_dir_remover(
+        os.path.join(os.getcwd(), 'Informes', REPORT_FILE_ADM))
+
+    file_and_dir_remover(
+        os.path.join(os.getcwd(), 'Informes', REPORT_FILE_INF))
+
+    file_and_dir_remover(
+        os.path.join(os.getcwd(), 'Informes', REPORT_FILE_INF))
 
 
 def setup_options():
@@ -725,7 +734,7 @@ def del_tmp_and_reg_files():
                   os.path.join(os.getcwd(), FILE_ANSWERS_TMP),
                   os.path.join(os.getcwd(), 'TmpFiles', FILE_ANSWERS_TMP))
     else:  # Elimina arxius temporals
-        silent_remove(FILE_ANSWERS_TMP)
+        file_and_dir_remover(FILE_ANSWERS_TMP)
         print('Arxius temporals eliminats.')
 
     if OPTION_TMP_RECORDS == 1:  # Conserva els registres
@@ -739,8 +748,8 @@ def del_tmp_and_reg_files():
                   os.path.join(os.getcwd(), FILE_ANSWERS_RECORD),
                   os.path.join(os.getcwd(), 'RcdFiles', FILE_ANSWERS_RECORD))
     else:  # Elimina registres
-        silent_remove(FILE_ERRORS_RECORD)
-        silent_remove(FILE_ANSWERS_RECORD)
+        file_and_dir_remover(FILE_ERRORS_RECORD)
+        file_and_dir_remover(FILE_ANSWERS_RECORD)
         print('Registres temporals eliminats.')
 
     if OPTION_REPORTS == 1:  # Genera informes
