@@ -142,7 +142,7 @@ def fix_saga_inconsistencies(grup, mp):
     Descripció: Esmena les incoherències detectades entre els codis assignats a
                 SAGA i els MP matriculats.
     Entrada:    3 strings amb grup, MP i UF.
-    Sortida:    String "MP"-
+    Sortida:    String "MP".
     Exemple:    "MP16" en el cas del cicle d'AF retorna "MP05".
     """
     # Cicle d'AF
