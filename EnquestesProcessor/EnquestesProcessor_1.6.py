@@ -187,7 +187,7 @@ def filter_invalid_responses():
                     errades_rec_writer.writerow(
                                      ['desconegut'] +
                                      ['desconegut'] +
-                                     ['EMAIL INEXISTENT'] +
+                                     ['EMAIL DESCONEGUT'] +
                                      arranged_respostes_row)
 
     errades_rec.close()
