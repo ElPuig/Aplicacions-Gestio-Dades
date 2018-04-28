@@ -1,7 +1,7 @@
 #!/usr/bin/python3.6
 # -*- coding: UTF-8 -*-
 
-"""EnquestesProcessor_1.6:
+"""EnquestesProcessor_2.0:
 Fitxers d'entrada:
     - alumnes-mp.csv: llista dels alumnes matriculats a cada CF,
                       amb el seu nom complet, l'adreça Xeill, el cicle i curs,
@@ -10,6 +10,8 @@ Fitxers d'entrada:
                      conté les valoracions dels alumnes
 Fitxers de sortida:
     - finals:
+        * estadística_respostes.csv: conté la mitjana de les respostes per ítem
+                                     objecte avaluat i grup
         * resultats_respostes.csv: conté les respostes per ser traspassades al
                                    full de càlcul final
         * resultats_errades.csv: conté les respostes filtrades
@@ -24,27 +26,29 @@ Fitxers de sortida:
         * resultats_tmp.csv: conté les respostes vàlides amb la identificació
                             de l'estudiant
 
-Principals canvis d'aquesta nova versió (respecte a v1.5.2):
-    - modificacions als fitxers d'errades:
-        * curs avaluat substituït pel cicle avaluat
-        * columna «TIMESTAMP» resituat com a darrera columna (FILE_ERRORS)
-    - reanomenament de variables i funcions per claredat
-    - correcció de bug a la funció setup_options
-    - afegida funció file_and_dir_remover per evitar errors davant l'eliminació
-      de directoris no buits
+Novetats a la versió 2.0:
+    - càlcul de l'estadística per grup, objecte i ítem
+    - nou format dels informes per departament i centre
 """
 
 import csv
-import os
-import errno
+import collections
 from dateutil import parser
+import errno
+import os
 
-FILE_ANSWERS = 'resultats_respostes.csv'
-FILE_ERRORS = 'resultats_errades.csv'
-FILE_STUDENTS_WITH_AVALUATED_MP = 'resultats_alumnes-respostes.csv'
-FILE_ERRORS_RECORD = 'errades_rec.csv'
-FILE_ANSWERS_RECORD = 'resultats_rec.csv'
-FILE_ANSWERS_TMP = 'resultats_tmp.csv'
+RECORD_FILE_ERRORS = 'errades_rec.csv'
+RECORD_FILE_ANSWERS = 'resultats_rec.csv'
+REPORT_FILE_ADM = 'informe_Dept_Admin.csv'
+REPORT_FILE_INF = 'informe_Dept_Inform.csv'
+REPORT_FILE_CENTRE = 'informe_Centre.csv'
+RESULT_FILE_ANSWERS = 'resultats_respostes.csv'
+RESULT_FILE_ERRORS = 'resultats_errades.csv'
+RESULT_FILE_STATISTICS = 'estadística_respostes.csv'
+RESULT_FILE_STUDENTS_WITH_AVALUATED_MP = 'resultats_alumnes-respostes.csv'
+SOURCE_FILE_STUDENTS_WITH_MP = 'alumnes-mp.csv'
+SOURCE_FILE_STUDENT_ANSWERS = 'respostes.csv'
+TMP_FILE_ANSWERS = 'resultats_tmp.csv'
 # tmp -> 0 = elimina
 #        1 = conserva
 #        2 = consulta a usuari
@@ -58,11 +62,6 @@ OPTION_DUPLICATED_ANSWERS = 1
 #            1 = sí
 #            2 = consulta a usuari
 OPTION_REPORTS = 1
-REPORT_FILE_ADM = 'informe_Dept_Admin.csv'
-REPORT_FILE_INF = 'informe_Dept_Inform.csv'
-REPORT_FILE_CENTRE = 'informe_Centre.csv'
-SOURCE_FILE_STUDENTS_WITH_MP = 'alumnes-mp.csv'
-SOURCE_FILE_STUDENT_ANSWERS = 'respostes.csv'
 
 
 def filter_invalid_responses():
@@ -74,7 +73,7 @@ def filter_invalid_responses():
     Sortida:    Fitxer resultats_tmp.csv
                 Fitxer errades_rec.csv
     """
-    resultats_tmp = open(FILE_ANSWERS_TMP, 'w', encoding='utf-8')
+    resultats_tmp = open(TMP_FILE_ANSWERS, 'w', encoding='utf-8')
     resultats_tmp_writer = csv.writer(resultats_tmp)
 
     # Encapçalats
@@ -90,7 +89,7 @@ def filter_invalid_responses():
                                  'CENTRE-ÍTEM3', 'CENTRE-ÍTEM4',
                                  'CENTRE-ÍTEM5', 'CENTRE-ÍTEM6',
                                  'CENTRE-COMENTARI'])
-    errades_rec = open(FILE_ERRORS_RECORD, 'w', encoding='utf-8')
+    errades_rec = open(RECORD_FILE_ERRORS, 'w', encoding='utf-8')
     errades_rec_writer = csv.writer(errades_rec)
 
     # Encapçalats
@@ -245,7 +244,7 @@ def filter_duplicated_answers():
     respostes_dict = {}
     errades_dict = {}
 
-    with open(FILE_ANSWERS_TMP, 'r', encoding='utf-8') as respostes:
+    with open(TMP_FILE_ANSWERS, 'r', encoding='utf-8') as respostes:
         respostes_reader = csv.reader(respostes)
         next(respostes_reader, None)
 
@@ -326,7 +325,7 @@ def filter_duplicated_answers():
                                                  'referenced_timestamp'
                                                  ] = resposta_anterior['time']
 
-    resultats = open(FILE_ANSWERS_RECORD, 'w', encoding='utf-8')
+    resultats = open(RECORD_FILE_ANSWERS, 'w', encoding='utf-8')
     resultats_writer = csv.writer(resultats)
     # Encapçalats
     resultats_writer.writerow(
@@ -344,7 +343,7 @@ def filter_duplicated_answers():
      for k, v in respostes_dict.items()]
     resultats.close()
 
-    errades_rec = open(FILE_ERRORS_RECORD, 'a', encoding='utf-8')
+    errades_rec = open(RECORD_FILE_ERRORS, 'a', encoding='utf-8')
     errades_rec_writer = csv.writer(errades_rec)
     for k, v in errades_dict.items():
         if OPTION_DUPLICATED_ANSWERS == 0:
@@ -370,7 +369,7 @@ def generate_list_of_answers():
     """def generate_list_of_answers()
     Descripció: Genera un fitxer amb els objectes avaluats per l'alumne.
     Entrada:    Cap
-    Sortida:    Fitxer FILE_STUDENTS_WITH_AVALUATED_MP
+    Sortida:    Fitxer RESULT_FILE_STUDENTS_WITH_AVALUATED_MP
     """
     alumnes_mp_dict = {}
 
@@ -395,7 +394,7 @@ def generate_list_of_answers():
                 alumnes_mp_dict[email]['curs'] = curs
                 alumnes_mp_dict[email]['objecte'] = mpList
 
-    with open(FILE_ANSWERS_RECORD, 'r', encoding='utf-8') as respostes:
+    with open(RECORD_FILE_ANSWERS, 'r', encoding='utf-8') as respostes:
         respostes_reader = csv.DictReader(respostes)
 
         for respostes_row in respostes_reader:
@@ -428,7 +427,8 @@ def generate_list_of_answers():
             alumnes_mp_dict[email]['objecte'] = avaluatsList
 
     # Escriu els resultats al fitxer de sortida
-    result = open(FILE_STUDENTS_WITH_AVALUATED_MP, 'w', encoding='utf-8')
+    result = open(RESULT_FILE_STUDENTS_WITH_AVALUATED_MP,
+                  'w', encoding='utf-8')
     result_writer = csv.writer(result)
     # Encapçalats
     result_writer.writerow(
@@ -453,13 +453,13 @@ def final_result_files_arranger():
                 respostes, i prepara els resultats per
                 copiar i enganxar les dades al full de càlcul d'estadístiques.
     Entrada:    Cap
-    Sortida:    Fitxer FILE_ERRORS
-                Fitxer FILE_ANSWERS
+    Sortida:    Fitxer RESULT_FILE_ERRORS
+                Fitxer RESULT_FILE_ANSWERS
     """
-    with open(FILE_ERRORS_RECORD, 'r', encoding='utf-8') as errades_rec:
+    with open(RECORD_FILE_ERRORS, 'r', encoding='utf-8') as errades_rec:
         errades_rec_reader = csv.DictReader(errades_rec)
 
-        with open(FILE_ERRORS, 'w', encoding='utf-8') as errades:
+        with open(RESULT_FILE_ERRORS, 'w', encoding='utf-8') as errades:
             errades_writer = csv.writer(errades)
 
             # Encapçalats
@@ -478,11 +478,11 @@ def final_result_files_arranger():
                                 [errades_recRow['OBJECTE AVALUAT']] +
                                 [errades_recRow['TIMESTAMP']])
 
-    with open(FILE_ANSWERS_RECORD, 'r', encoding='utf-8') as resultats_rec:
+    with open(RECORD_FILE_ANSWERS, 'r', encoding='utf-8') as resultats_rec:
         resultats_rec_reader = csv.reader(resultats_rec)
         next(resultats_rec_reader, None)
 
-        with open(FILE_ANSWERS, 'w', encoding='utf-8')\
+        with open(RESULT_FILE_ANSWERS, 'w', encoding='utf-8')\
                 as resultats:
             resultats_writer = csv.writer(resultats)
 
@@ -513,87 +513,6 @@ def final_result_files_arranger():
                                           avaluacions)
 
 
-def generate_reports():
-    """def generateCommentsReport()
-    Descripció: Genera informes per cadascun dels departaments (Administració i
-                Informàtica) i el Centre
-                amb les avaluacions i comentaris rebuts
-    Entrada:    Cap
-    Sortida:    Fitxer REPORT_FILE_CENTRE
-                Fitxer REPORT_FILE_ADM
-                Fitxer REPORT_FILE_INF
-    """
-    report_adm = open(REPORT_FILE_ADM, 'w', encoding='utf-8')
-    report_adm_writer = csv.writer(report_adm)
-    # Encapçalats
-    report_adm_writer.writerow(
-                       ['GRUP', 'OBJECTE', 'ÍTEM1', 'ÍTEM2', 'ÍTEM3', 'ÍTEM4',
-                        'COMENTARI'])
-
-    report_centre = open(REPORT_FILE_CENTRE, 'w', encoding='utf-8')
-    report_centre_writer = csv.writer(report_centre)
-    # Encapçalats
-    report_centre_writer.writerow(
-                       ['GRUP', 'OBJECTE', 'ÍTEM1', 'ÍTEM2', 'ÍTEM3', 'ÍTEM4',
-                        'ÍTEM5', 'ÍTEM6', 'COMENTARI'])
-
-    report_inf = open(REPORT_FILE_INF, 'w', encoding='utf-8')
-    report_inf_writer = csv.writer(report_inf)
-    # Encapçalats
-    report_inf_writer.writerow(
-                       ['GRUP', 'OBJECTE', 'ÍTEM1', 'ÍTEM2', 'ÍTEM3', 'ÍTEM4',
-                        'COMENTARI'])
-
-    with open(FILE_ANSWERS_RECORD, 'r', encoding='utf-8') as resultats:
-        resultats_reader = csv.reader(resultats)
-        next(resultats_reader, None)
-
-        for resultats_row in resultats_reader:
-            curs = resultats_row[3]
-            objecte = resultats_row[4]
-            avalua_mp = resultats_row[5:10]
-            avalua_tutoria1 = resultats_row[10:13] +\
-                                           ["no s'avalua"] +\
-                resultats_row[13:14]
-            avalua_tutoria2 = resultats_row[14:19]
-            avalua_centre = resultats_row[19:]
-
-            grup_avaluat = find_avaluated_object(curs)
-
-            if grup_avaluat == 'Informàtica' and 'MP' in objecte:
-                report_inf_writer.writerow([curs] + [objecte] + avalua_mp)
-            elif grup_avaluat == 'Informàtica' and 'Tutoria 1r curs'\
-                                 in objecte:
-                report_inf_writer.writerow([curs] +
-                                           [objecte] +
-                                           avalua_tutoria1)
-            elif grup_avaluat == 'Informàtica' and 'Tutoria 2n curs'\
-                                 in objecte:
-                report_inf_writer.writerow([curs] +
-                                           [objecte] +
-                                           avalua_tutoria2)
-            elif grup_avaluat == 'Administració' and 'MP' in objecte:
-                report_adm_writer.writerow([curs] + [objecte] + avalua_mp)
-            elif grup_avaluat == 'Administració' and\
-                                 'Tutoria 1r curs' in objecte:
-                report_adm_writer.writerow([curs] +
-                                           [objecte] +
-                                           avalua_tutoria1)
-            elif grup_avaluat == 'Administració' and\
-                                 'Tutoria 2n curs' in objecte:
-                report_adm_writer.writerow([curs] +
-                                           [objecte] +
-                                           avalua_tutoria2)
-            elif 'El centre' in objecte:
-                report_centre_writer.writerow([curs] +
-                                              [objecte] +
-                                              avalua_centre)
-
-    report_adm.close()
-    report_centre.close()
-    report_inf.close()
-
-
 def find_avaluated_object(s):
     """def find_avaluated_object(s)
     Descripció: Classifica els grups per departaments (Adminsitració i
@@ -609,6 +528,317 @@ def find_avaluated_object(s):
     for k, v in grups_mapping_list:
         if k in s:
             return v
+
+
+def generate_statistics():
+    statistics = open(RESULT_FILE_STATISTICS, 'w', encoding='utf-8')
+    statistics_writer = csv.writer(statistics)
+
+    # Encapçalat
+    statistics_writer.writerow(['DEPARTAMENT', 'GRUP', 'OBJECTE', 'ÍTEM 1',
+                                'ÍTEM 2', 'ÍTEM 3', 'ÍTEM 4', 'ÍTEM 5',
+                                'ÍTEM 6', 'NOMBRE RESPOSTES'])
+
+    survey_avg_results_dict = collections.OrderedDict()
+    survey_avg_results_dict = fill_survey_avg_results_dict(
+                                  **survey_avg_results_dict)
+
+    for cicle, objecte in sorted(survey_avg_results_dict.items()):
+        departament = get_departament(cicle)
+        objectes_dict = collections.OrderedDict(
+                            survey_avg_results_dict[cicle].items())
+        for objecte, item in sorted(objectes_dict.items()):
+            items_dict = collections.OrderedDict(
+                            objectes_dict[objecte].items())
+            items_list = generate_items_points_and_responses_list(**items_dict)
+            statistics_writer.writerow(
+                [departament, cicle, objecte] + items_list)
+
+    statistics.close()
+
+
+def fill_survey_avg_results_dict(**survey_avg_results_dict):
+    """fill_survey_avg_results_dict(**survey_avg_results_dict)
+    Descripció: Emplena els cicles a survey_avg_results_dict.
+    Entrada:    Diccionari buit.
+    Sortida:    Diccionari complet amb el total de punts per ítem,
+                nombre de respostes per ítem i mitjana per ítem de cada
+                objecte de cada cicle.
+    """
+    survey_avg_results_dict = add_cicles_to_dict(
+                                  **survey_avg_results_dict)
+    survey_avg_results_dict = add_objects_to_cicle(
+                                  **survey_avg_results_dict)
+    survey_avg_results_dict = add_qualifications_to_objects(
+                                  **survey_avg_results_dict)
+
+    return survey_avg_results_dict
+
+
+def add_cicles_to_dict(**survey_avg_results_dict):
+    """add_cicles_to_dict(**survey_avg_results_dict)
+    Descripció: Emplena els cicles a survey_avg_results_dict.
+    Entrada:    Diccionari buit.
+    Sortida:    Diccionari amb tots els cicles participants a l'enquesta.
+    """
+    with open(RESULT_FILE_ANSWERS, 'r', encoding='utf-8') as respostes:
+        respostes_reader = csv.DictReader(respostes)
+
+        for respostes_row in respostes_reader:
+            if respostes_row['GRUP'] not in survey_avg_results_dict.keys():
+                survey_avg_results_dict[respostes_row['GRUP']] = {}
+
+    return survey_avg_results_dict
+
+
+def add_objects_to_cicle(**survey_avg_results_dict):
+    """add_objects_to_cicle(**survey_avg_results_dict)
+    Descripció: Emplena els objectes a survey_avg_results_dict.
+    Entrada:    Diccionari amb els cicles.
+    Sortida:    Diccionari amb els apartats d'MP, tutoria i centre
+                afegits per cada cicle.
+    """
+    with open(RESULT_FILE_ANSWERS, 'r', encoding='utf-8') as respostes:
+        respostes_reader = csv.DictReader(respostes)
+
+        for respostes_row in respostes_reader:
+            if (respostes_row['OBJECTE'] not in survey_avg_results_dict[
+                                    respostes_row['GRUP']].keys()):
+                survey_avg_results_dict[
+                    respostes_row['GRUP']
+                    ][respostes_row['OBJECTE']] = {}
+
+    return survey_avg_results_dict
+
+
+def add_qualifications_to_objects(**survey_avg_results_dict):
+    """add_qualifications_to_objects(**survey_avg_results_dict)
+    Descripció: Emplena els resultats per ítem de cada objecte a
+                survey_avg_results_dict.
+    Entrada:    Diccionari amb els cicles i objectes.
+    Sortida:    Diccionari actualitzat amb el total de punts per ítem,
+                nombre de respostes per ítem i mitjana per ítem de cada
+                objecte.
+    """
+    with open(RESULT_FILE_ANSWERS, 'r', encoding='utf-8') as respostes:
+        respostes_reader = csv.DictReader(respostes)
+
+        for respostes_row in respostes_reader:
+            item_number = 1
+            for column in respostes_row:
+                if (respostes_row[column].isdigit() is True):
+                    # Add to total points by item
+                    if ('item' + str(item_number)
+                        ) not in survey_avg_results_dict[
+                        respostes_row['GRUP']
+                            ][respostes_row['OBJECTE']].keys():
+                        survey_avg_results_dict[
+                            respostes_row['GRUP']
+                                  ][respostes_row['OBJECTE']
+                                    ]['item' + str(item_number)] = {}
+
+                        survey_avg_results_dict[
+                            respostes_row['GRUP']
+                                        ][respostes_row['OBJECTE']
+                                          ]['item' + str(item_number)
+                                            ]['TOTAL POINTS'] = 0
+
+                    survey_avg_results_dict[
+                        respostes_row['GRUP']
+                                    ][respostes_row['OBJECTE']
+                                      ]['item' + str(item_number)
+                                        ]['TOTAL POINTS'] += int(
+                                                    respostes_row[column])
+
+                    # Add to total responses by item
+                    if 'TOTAL RESPONSES' not in survey_avg_results_dict[
+                        respostes_row['GRUP']
+                        ][respostes_row['OBJECTE']
+                          ]['item' + str(item_number)].keys():
+                        survey_avg_results_dict[
+                            respostes_row['GRUP']
+                            ][respostes_row['OBJECTE']
+                              ]['item' + str(item_number)
+                                ]['TOTAL RESPONSES'] = 1
+
+                    else:
+                        survey_avg_results_dict[
+                          respostes_row['GRUP']
+                          ][respostes_row['OBJECTE']
+                            ]['item' + str(item_number)
+                              ]['TOTAL RESPONSES'] += 1
+
+                    # Recalculate average points per item
+                    survey_avg_results_dict[
+                        respostes_row['GRUP']
+                        ][respostes_row['OBJECTE']
+                          ]['item' + str(item_number)
+                            ]['AVERAGE POINTS'] = (survey_avg_results_dict[
+                                                respostes_row['GRUP']
+                                                ][respostes_row['OBJECTE']
+                                                  ]['item' + str(item_number)
+                                                    ]['TOTAL POINTS'] /
+                                               survey_avg_results_dict[
+                                                respostes_row['GRUP']
+                                                ][respostes_row['OBJECTE']
+                                                  ]['item' + str(item_number)
+                                                    ]['TOTAL RESPONSES'])
+                    item_number += 1
+
+    return survey_avg_results_dict
+
+
+def generate_items_points_and_responses_list(**items_dict):
+    """generate_items_points_and_responses_list(**items_dict)
+    Descripció: Retorna el departament corresponent al cicle.
+    Entrada:    Diccionari amb els ítems.
+    Sortida:    String amb el nom del departament.
+    """
+    items_list = []
+    for k, v in sorted(items_dict.items()):
+        items_list.append(
+            format(round(items_dict[k]['AVERAGE POINTS'], 2), '.2f'))
+
+    while (len(items_list) < 6):
+        items_list.append('')
+
+    items_list.append(items_dict[k]['TOTAL RESPONSES'])
+
+    return items_list
+
+
+def get_departament(cicle):
+    """get_departament(cicle)
+    Descripció: Retorna el departament corresponent al cicle.
+    Entrada:    String amb el nom del cicle.
+    Sortida:    String amb el nom del departament.
+    """
+    if 'AF' in cicle or 'GA' in cicle:
+        return 'ADMINISTRACIÓ'
+    return 'INFORMÀTICA'
+
+
+def generate_reports():
+    """def generateCommentsReport()
+    Descripció: Genera informes per cadascun dels departaments (Administració
+                i Informàtica) i el centre amb les avaluacions i comentaris
+                rebuts.
+    Entrada:    Cap
+    Sortida:    Fitxer REPORT_FILE_CENTRE
+                Fitxer REPORT_FILE_ADM
+                Fitxer REPORT_FILE_INF
+    """
+    depts_dict = {'ADMINISTRACIÓ': REPORT_FILE_ADM,
+                  'INFORMÀTICA': REPORT_FILE_INF}
+
+    for dept, file in depts_dict.items():
+        report_dept = open(depts_dict[dept], 'w', encoding='utf-8')
+        report_dept_writer = csv.writer(report_dept)
+        # Encapçalats
+        report_dept_writer.writerow(
+                        ['GRUP', 'OBJECTE', 'ÍTEM 1', 'ÍTEM 2', 'ÍTEM 3',
+                         'ÍTEM 4', 'COMENTARI'])
+
+        with open(RESULT_FILE_STATISTICS, 'r', encoding='utf-8') as statistics:
+            statistics_reader = csv.DictReader(statistics)
+
+            for statistics_row in statistics_reader:
+                comments = ''
+                if (statistics_row['DEPARTAMENT'] == dept and
+                   'mp' in statistics_row['OBJECTE'].lower()):
+                    with open(RESULT_FILE_ANSWERS,
+                              'r', encoding='utf-8') as resultats:
+                        resultats_reader = csv.DictReader(resultats)
+                        for resultats_row in resultats_reader:
+                            if (statistics_row[
+                                    'GRUP'] == resultats_row['GRUP'] and
+                               statistics_row[
+                                    'OBJECTE'] == resultats_row['OBJECTE'] and
+                               resultats_row['MP-COMENTARI'] != ''):
+                                if comments != '':
+                                    comments += '\n'
+                                comments += resultats_row['MP-COMENTARI'
+                                                          ].replace('\n', ' ')
+                    report_dept_writer.writerow([statistics_row['GRUP']] +
+                                                [statistics_row['OBJECTE']] +
+                                                [statistics_row['ÍTEM 1']] +
+                                                [statistics_row['ÍTEM 2']] +
+                                                [statistics_row['ÍTEM 3']] +
+                                                [statistics_row['ÍTEM 4']] +
+                                                [comments])
+
+                elif (statistics_row['DEPARTAMENT'] == dept and
+                      'tutoria' in statistics_row['OBJECTE'].lower()):
+                    with open(RESULT_FILE_ANSWERS,
+                              'r', encoding='utf-8') as resultats:
+                        resultats_reader = csv.DictReader(resultats)
+                        for resultats_row in resultats_reader:
+                            if (statistics_row[
+                                   'GRUP'] == resultats_row['GRUP'] and
+                               statistics_row[
+                                   'OBJECTE'] == resultats_row['OBJECTE']):
+                                if resultats_row['TUTORIA1-COMENTARI'] != '':
+                                    if comments != '':
+                                        comments += '\n'
+                                    comments += resultats_row[
+                                                    'TUTORIA1-COMENTARI'
+                                                    ].replace('\n', ' ')
+                                if resultats_row['TUTORIA2-COMENTARI'] != '':
+                                    if comments != '':
+                                        comments += '\n'
+                                    comments += resultats_row[
+                                                    'TUTORIA2-COMENTARI'
+                                                    ].replace('\n', ' ')
+                    report_dept_writer.writerow([statistics_row['GRUP']] +
+                                                [statistics_row['OBJECTE']] +
+                                                [statistics_row['ÍTEM 1']] +
+                                                [statistics_row['ÍTEM 2']] +
+                                                [statistics_row['ÍTEM 3']] +
+                                                [statistics_row['ÍTEM 4']] +
+                                                [comments])
+        report_dept.close()
+
+    report_centre = open(REPORT_FILE_CENTRE, 'w', encoding='utf-8')
+    report_centre_writer = csv.writer(report_centre)
+    # Encapçalats
+    report_centre_writer.writerow(
+                    ['DEPARTAMENT', 'GRUP', 'ÍTEM 1', 'ÍTEM 2', 'ÍTEM 3',
+                     'ÍTEM 4', 'ÍTEM 5', 'ÍTEM 6', 'COMENTARI'])
+
+    with open(RESULT_FILE_STATISTICS, 'r', encoding='utf-8') as statistics:
+            statistics_reader = csv.DictReader(statistics)
+
+            for statistics_row in statistics_reader:
+                comments = ''
+                if 'centre' in statistics_row['OBJECTE'].lower():
+                    with open(RESULT_FILE_ANSWERS,
+                              'r', encoding='utf-8') as resultats:
+                        resultats_reader = csv.DictReader(resultats)
+                        for resultats_row in resultats_reader:
+                            if (statistics_row[
+                                    'GRUP'] == resultats_row['GRUP'] and
+                               statistics_row[
+                                    'OBJECTE'] == resultats_row['OBJECTE']):
+                                    if resultats_row['CENTRE-COMENTARI'] != '':
+                                        if comments != '':
+                                            comments += '\n'
+                                        comments += resultats_row[
+                                                         'CENTRE-COMENTARI'
+                                                         ].replace('\n', ' ')
+
+                        report_centre_writer.writerow(
+                                        [get_departament(
+                                          statistics_row['GRUP'])
+                                         ] +
+                                        [statistics_row['GRUP']] +
+                                        [statistics_row['ÍTEM 1']] +
+                                        [statistics_row['ÍTEM 2']] +
+                                        [statistics_row['ÍTEM 3']] +
+                                        [statistics_row['ÍTEM 4']] +
+                                        [statistics_row['ÍTEM 5']] +
+                                        [statistics_row['ÍTEM 6']] +
+                                        [comments])
+    report_centre.close()
 
 
 def file_and_dir_remover(file_or_dir):
@@ -636,26 +866,28 @@ def setup_files():
     Entrada:    Cap.
     Sortida:    Elimina fixters anteriors.
     """
-    file_and_dir_remover(FILE_ERRORS)
+    file_and_dir_remover(RESULT_FILE_ERRORS)
 
-    file_and_dir_remover(FILE_ANSWERS)
+    file_and_dir_remover(RESULT_FILE_ANSWERS)
 
-    file_and_dir_remover(FILE_STUDENTS_WITH_AVALUATED_MP)
+    file_and_dir_remover(RESULT_FILE_STATISTICS)
 
-    file_and_dir_remover(
-        os.path.join(os.getcwd(), 'TmpFiles', FILE_ANSWERS_TMP))
-
-    file_and_dir_remover(
-        os.path.join(os.getcwd(), 'TmpFiles', FILE_ANSWERS_TMP))
+    file_and_dir_remover(RESULT_FILE_STUDENTS_WITH_AVALUATED_MP)
 
     file_and_dir_remover(
-        os.path.join(os.getcwd(), 'RcdFiles', FILE_ERRORS_RECORD))
+        os.path.join(os.getcwd(), 'TmpFiles', TMP_FILE_ANSWERS))
 
     file_and_dir_remover(
-        os.path.join(os.getcwd(), 'RcdFiles', FILE_ANSWERS_RECORD))
+        os.path.join(os.getcwd(), 'TmpFiles', TMP_FILE_ANSWERS))
 
     file_and_dir_remover(
-        os.path.join(os.getcwd(), 'RcdFiles', FILE_ANSWERS_RECORD))
+        os.path.join(os.getcwd(), 'RcdFiles', RECORD_FILE_ERRORS))
+
+    file_and_dir_remover(
+        os.path.join(os.getcwd(), 'RcdFiles', RECORD_FILE_ANSWERS))
+
+    file_and_dir_remover(
+        os.path.join(os.getcwd(), 'RcdFiles', RECORD_FILE_ANSWERS))
 
     file_and_dir_remover(
         os.path.join(os.getcwd(), 'Informes', REPORT_FILE_CENTRE))
@@ -731,10 +963,10 @@ def del_tmp_and_reg_files():
         if not os.path.exists(os.path.join(os.getcwd(), 'TmpFiles')):
             os.makedirs(os.path.join(os.getcwd(), 'TmpFiles'))
         os.rename(
-                  os.path.join(os.getcwd(), FILE_ANSWERS_TMP),
-                  os.path.join(os.getcwd(), 'TmpFiles', FILE_ANSWERS_TMP))
+                  os.path.join(os.getcwd(), TMP_FILE_ANSWERS),
+                  os.path.join(os.getcwd(), 'TmpFiles', TMP_FILE_ANSWERS))
     else:  # Elimina arxius temporals
-        file_and_dir_remover(FILE_ANSWERS_TMP)
+        file_and_dir_remover(TMP_FILE_ANSWERS)
         print('Arxius temporals eliminats.')
 
     if OPTION_TMP_RECORDS == 1:  # Conserva els registres
@@ -742,14 +974,14 @@ def del_tmp_and_reg_files():
         if not os.path.exists(os.path.join(os.getcwd(), 'RcdFiles')):
             os.makedirs(os.path.join(os.getcwd(), 'RcdFiles'))
         os.rename(
-                  os.path.join(os.getcwd(), FILE_ERRORS_RECORD),
-                  os.path.join(os.getcwd(), 'RcdFiles', FILE_ERRORS_RECORD))
+                  os.path.join(os.getcwd(), RECORD_FILE_ERRORS),
+                  os.path.join(os.getcwd(), 'RcdFiles', RECORD_FILE_ERRORS))
         os.rename(
-                  os.path.join(os.getcwd(), FILE_ANSWERS_RECORD),
-                  os.path.join(os.getcwd(), 'RcdFiles', FILE_ANSWERS_RECORD))
+                  os.path.join(os.getcwd(), RECORD_FILE_ANSWERS),
+                  os.path.join(os.getcwd(), 'RcdFiles', RECORD_FILE_ANSWERS))
     else:  # Elimina registres
-        file_and_dir_remover(FILE_ERRORS_RECORD)
-        file_and_dir_remover(FILE_ANSWERS_RECORD)
+        file_and_dir_remover(RECORD_FILE_ERRORS)
+        file_and_dir_remover(RECORD_FILE_ANSWERS)
         print('Registres temporals eliminats.')
 
     if OPTION_REPORTS == 1:  # Genera informes
@@ -826,6 +1058,9 @@ if __name__ == '__main__':
 
     generate_list_of_answers()
     final_result_files_arranger()
+
+    generate_statistics()
+
     if OPTION_REPORTS == 1:
         generate_reports()
     del_tmp_and_reg_files()
