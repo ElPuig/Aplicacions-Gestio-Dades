@@ -697,7 +697,8 @@ def generate_items_points_and_responses_list(**items_dict):
     items_list = []
     for k, v in sorted(items_dict.items()):
         items_list.append(
-            format(round(items_dict[k]['AVERAGE POINTS'], 2), '.2f'))
+            format(round(items_dict[k]['AVERAGE POINTS'], 2), '.2f'
+                   ).replace('.', ','))
 
     while (len(items_list) < 6):
         items_list.append('')
