@@ -1,7 +1,7 @@
 #!/usr/bin/python3.6
 # -*- coding: UTF-8 -*-
 
-"""EnquestesProcessor_2.0:
+"""EnquestesProcessor_2.1:
 Fitxers d'entrada:
     - alumnes-mp.csv: llista dels alumnes matriculats a cada CF,
                       amb el seu nom complet, l'adreça Xeill, el cicle i curs,
@@ -27,8 +27,10 @@ Fitxers de sortida:
                             de l'estudiant
 
 Novetats a la versió 2.0:
-    - càlcul de l'estadística per grup, objecte i ítem
-    - nou format dels informes per departament i centre
+    - afegit el nombre de respostes als informes
+    - afegida la funció merge_repeaters_with_1st_course_class, la qual integra
+      els resultats dels estudiants de 2n curs que repeteixen alguna UF d'un MP
+      de 1r curs, amb el grup de 1r
 """
 
 import csv
@@ -62,6 +64,7 @@ OPTION_DUPLICATED_ANSWERS = 1
 #            1 = sí
 #            2 = consulta a usuari
 OPTION_REPORTS = 1
+THRESHOLD_MERGE_GROUP_MP_ANSWERS = 4
 
 
 def filter_invalid_responses():
@@ -542,6 +545,8 @@ def generate_statistics():
     survey_avg_results_dict = collections.OrderedDict()
     survey_avg_results_dict = fill_survey_avg_results_dict(
                                   **survey_avg_results_dict)
+    survey_avg_results_dict = merge_repeaters_with_1st_course_class(
+                                  **survey_avg_results_dict)
 
     for cicle, objecte in sorted(survey_avg_results_dict.items()):
         departament = get_departament(cicle)
@@ -690,7 +695,8 @@ def add_qualifications_to_objects(**survey_avg_results_dict):
 
 def generate_items_points_and_responses_list(**items_dict):
     """generate_items_points_and_responses_list(**items_dict)
-    Descripció: Retorna el departament corresponent al cicle.
+    Descripció: Retorna un llistat amb les puntuacions per ítem
+                i el nombre de respostes.
     Entrada:    Diccionari amb els ítems.
     Sortida:    String amb el nom del departament.
     """
@@ -719,6 +725,56 @@ def get_departament(cicle):
     return 'INFORMÀTICA'
 
 
+def merge_repeaters_with_1st_course_class(**survey_avg_results_dict):
+    """merge_repeaters_with_1st_course_class(**survey_avg_results_dict)
+    Descripció: A cada cicle compara si alguna de les assignatures de 2n
+                curs existeix també a 1r curs, i si té un nombre de respostes
+                menor a la constant THRESHOLD_MERGE_GROUP_MP_ANSWERS, afegeix
+                els resultats al grup de 1r i suprimeix el de 2n. L'objectiu
+                és integrar les respostes dels estudiants de 2n curs, però que
+                repeteixen alguna UF d'un MP de 1r curs, amb el grup de 1r.
+    Entrada:    Diccionari amb els resultats.
+    Sortida:    Diccionari amb els resultats de 1r i 2n curs especificats
+                fusionats i els corresponents de 2n curs eliminats.
+    """
+    for grup, objecte in survey_avg_results_dict.items():
+        if '2' in grup:
+            grup_2n = grup
+            objectes_dict = dict(survey_avg_results_dict[grup_2n].items())
+            for objecte, item in objectes_dict.items():
+                if ('mp' in objecte.lower() and
+                   objectes_dict[objecte]['item1']['TOTAL RESPONSES'] <= THRESHOLD_MERGE_GROUP_MP_ANSWERS):
+                    try:
+                        grup_1r = grup_2n.replace('2', '1')
+                        for i in range (1,5):
+                            survey_avg_results_dict[
+                                grup_1r][objecte][
+                                    'item' + str(i)][
+                                        'TOTAL POINTS'] += objectes_dict[
+                                            objecte]['item' + str(i)]['TOTAL RESPONSES']
+
+                            survey_avg_results_dict[
+                                grup_1r][objecte][
+                                    'item' + str(i)][
+                                        'TOTAL RESPONSES'] += objectes_dict[
+                                            objecte]['item' + str(i)]['TOTAL RESPONSES']
+
+                            survey_avg_results_dict[
+                                grup_1r][objecte][
+                                    'item' + str(i)]['AVERAGE POINTS'] =  (
+                                                survey_avg_results_dict[grup_1r][objecte
+                                                ]['item' + str(i)]['TOTAL POINTS'] /
+                                                survey_avg_results_dict[grup_1r][objecte
+                                                ]['item' + str(i)]['TOTAL RESPONSES'])
+
+                        survey_avg_results_dict[grup_2n].pop(objecte, None)
+
+                    except:
+                        pass
+
+    return survey_avg_results_dict
+
+
 def generate_reports():
     """def generateCommentsReport()
     Descripció: Genera informes per cadascun dels departaments (Administració
@@ -738,7 +794,7 @@ def generate_reports():
         # Encapçalats
         report_dept_writer.writerow(
                         ['GRUP', 'OBJECTE', 'ÍTEM 1', 'ÍTEM 2', 'ÍTEM 3',
-                         'ÍTEM 4', 'COMENTARI'])
+                         'ÍTEM 4', 'NOMBRE RESPOSTES', 'COMENTARI'])
 
         with open(RESULT_FILE_STATISTICS, 'r', encoding='utf-8') as statistics:
             statistics_reader = csv.DictReader(statistics)
@@ -766,6 +822,7 @@ def generate_reports():
                                                 [statistics_row['ÍTEM 2']] +
                                                 [statistics_row['ÍTEM 3']] +
                                                 [statistics_row['ÍTEM 4']] +
+                                                [statistics_row['NOMBRE RESPOSTES']] +
                                                 [comments])
 
                 elif (statistics_row['DEPARTAMENT'] == dept and
@@ -796,6 +853,7 @@ def generate_reports():
                                                 [statistics_row['ÍTEM 2']] +
                                                 [statistics_row['ÍTEM 3']] +
                                                 [statistics_row['ÍTEM 4']] +
+                                                [statistics_row['NOMBRE RESPOSTES']] +
                                                 [comments])
         report_dept.close()
 
@@ -804,7 +862,7 @@ def generate_reports():
     # Encapçalats
     report_centre_writer.writerow(
                     ['DEPARTAMENT', 'GRUP', 'ÍTEM 1', 'ÍTEM 2', 'ÍTEM 3',
-                     'ÍTEM 4', 'ÍTEM 5', 'ÍTEM 6', 'COMENTARI'])
+                     'ÍTEM 4', 'ÍTEM 5', 'ÍTEM 6', 'NOMBRE RESPOSTES', 'COMENTARI'])
 
     with open(RESULT_FILE_STATISTICS, 'r', encoding='utf-8') as statistics:
             statistics_reader = csv.DictReader(statistics)
@@ -838,6 +896,7 @@ def generate_reports():
                                         [statistics_row['ÍTEM 4']] +
                                         [statistics_row['ÍTEM 5']] +
                                         [statistics_row['ÍTEM 6']] +
+                                        [statistics_row['NOMBRE RESPOSTES']] +
                                         [comments])
     report_centre.close()
 
