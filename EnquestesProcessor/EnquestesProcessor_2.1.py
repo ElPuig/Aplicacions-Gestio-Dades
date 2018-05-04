@@ -743,29 +743,34 @@ def merge_repeaters_with_1st_course_class(**survey_avg_results_dict):
             objectes_dict = dict(survey_avg_results_dict[grup_2n].items())
             for objecte, item in objectes_dict.items():
                 if ('mp' in objecte.lower() and
-                   objectes_dict[objecte]['item1']['TOTAL RESPONSES'] <= THRESHOLD_MERGE_GROUP_MP_ANSWERS):
+                   objectes_dict[
+                      objecte]['item1']['TOTAL RESPONSES'
+                                        ] <= THRESHOLD_MERGE_GROUP_MP_ANSWERS):
                     try:
                         grup_1r = grup_2n.replace('2', '1')
-                        for i in range (1,5):
-                            survey_avg_results_dict[
-                                grup_1r][objecte][
+                        for i in range(1, 5):
+                            survey_avg_results_dict[grup_1r][objecte][
                                     'item' + str(i)][
-                                        'TOTAL POINTS'] += objectes_dict[
-                                            objecte]['item' + str(i)]['TOTAL RESPONSES']
+                                    'TOTAL POINTS'] += objectes_dict[objecte][
+                                    'item' + str(i)]['TOTAL RESPONSES']
 
                             survey_avg_results_dict[
                                 grup_1r][objecte][
                                     'item' + str(i)][
-                                        'TOTAL RESPONSES'] += objectes_dict[
-                                            objecte]['item' + str(i)]['TOTAL RESPONSES']
+                                    'TOTAL RESPONSES'] += objectes_dict[
+                                    objecte]['item' + str(i)][
+                                    'TOTAL RESPONSES']
 
                             survey_avg_results_dict[
                                 grup_1r][objecte][
-                                    'item' + str(i)]['AVERAGE POINTS'] =  (
-                                                survey_avg_results_dict[grup_1r][objecte
-                                                ]['item' + str(i)]['TOTAL POINTS'] /
-                                                survey_avg_results_dict[grup_1r][objecte
-                                                ]['item' + str(i)]['TOTAL RESPONSES'])
+                                    'item' + str(i)][
+                                    'AVERAGE POINTS'] = (
+                                    survey_avg_results_dict[grup_1r][
+                                     objecte]['item' + str(i)]['TOTAL POINTS']
+                                        /
+                                    survey_avg_results_dict[grup_1r][
+                                     objecte]['item' + str(i)][
+                                     'TOTAL RESPONSES'])
 
                         survey_avg_results_dict[grup_2n].pop(objecte, None)
 
@@ -822,7 +827,8 @@ def generate_reports():
                                                 [statistics_row['ÍTEM 2']] +
                                                 [statistics_row['ÍTEM 3']] +
                                                 [statistics_row['ÍTEM 4']] +
-                                                [statistics_row['NOMBRE RESPOSTES']] +
+                                                [statistics_row[
+                                                  'NOMBRE RESPOSTES']] +
                                                 [comments])
 
                 elif (statistics_row['DEPARTAMENT'] == dept and
@@ -853,7 +859,8 @@ def generate_reports():
                                                 [statistics_row['ÍTEM 2']] +
                                                 [statistics_row['ÍTEM 3']] +
                                                 [statistics_row['ÍTEM 4']] +
-                                                [statistics_row['NOMBRE RESPOSTES']] +
+                                                [statistics_row[
+                                                  'NOMBRE RESPOSTES']] +
                                                 [comments])
         report_dept.close()
 
@@ -862,7 +869,8 @@ def generate_reports():
     # Encapçalats
     report_centre_writer.writerow(
                     ['DEPARTAMENT', 'GRUP', 'ÍTEM 1', 'ÍTEM 2', 'ÍTEM 3',
-                     'ÍTEM 4', 'ÍTEM 5', 'ÍTEM 6', 'NOMBRE RESPOSTES', 'COMENTARI'])
+                     'ÍTEM 4', 'ÍTEM 5', 'ÍTEM 6', 'NOMBRE RESPOSTES',
+                     'COMENTARI'])
 
     with open(RESULT_FILE_STATISTICS, 'r', encoding='utf-8') as statistics:
             statistics_reader = csv.DictReader(statistics)
@@ -887,8 +895,7 @@ def generate_reports():
 
                         report_centre_writer.writerow(
                                         [get_departament(
-                                          statistics_row['GRUP'])
-                                         ] +
+                                          statistics_row['GRUP'])] +
                                         [statistics_row['GRUP']] +
                                         [statistics_row['ÍTEM 1']] +
                                         [statistics_row['ÍTEM 2']] +
