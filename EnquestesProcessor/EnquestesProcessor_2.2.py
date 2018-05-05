@@ -1,7 +1,7 @@
 #!/usr/bin/python3.6
 # -*- coding: UTF-8 -*-
 
-"""EnquestesProcessor_2.1:
+"""EnquestesProcessor_2.2:
 Fitxers d'entrada:
     - alumnes-mp.csv: llista dels alumnes matriculats a cada CF,
                       amb el seu nom complet, l'adreça Xeill, el cicle i curs,
@@ -26,11 +26,10 @@ Fitxers de sortida:
         * resultats_tmp.csv: conté les respostes vàlides amb la identificació
                             de l'estudiant
 
-Novetats a la versió 2.0:
-    - afegit el nombre de respostes als informes
-    - afegida la funció merge_repeaters_with_1st_course_class, la qual integra
-      els resultats dels estudiants de 2n curs que repeteixen alguna UF d'un MP
-      de 1r curs, amb el grup de 1r
+Novetats respecte a la versió 2.1:
+    - modificacions per afegir als informes de departament els comentaris dels
+      estudiants de 2n curs que repeteixen alguna UF d'un MP de 1r curs i han
+      estat fusionats amb el grup de 1r
 """
 
 import csv
@@ -73,8 +72,8 @@ def filter_invalid_responses():
                 cicle o al MP avaluat, o que no pertanyin al curs de la tutoria
                 avaluada.
     Entrada:    Cap.
-    Sortida:    Fitxer resultats_tmp.csv
-                Fitxer errades_rec.csv
+    Sortida:    Fitxer TMP_FILE_ANSWERS
+                Fitxer RECORD_FILE_ERRORS
     """
     resultats_tmp = open(TMP_FILE_ANSWERS, 'w', encoding='utf-8')
     resultats_tmp_writer = csv.writer(resultats_tmp)
@@ -267,7 +266,7 @@ def filter_duplicated_answers():
 
             else:
                 if OPTION_DUPLICATED_ANSWERS == 0:  # Conserva primera resposta
-                    if (r_time > resposta_anterior['time']):
+                    if r_time > resposta_anterior['time']:
                         errades_dict[r_email_curs_objecte] = {}
                         errades_dict[r_email_curs_objecte]['time'] = r_time
                         errades_dict[r_email_curs_objecte][
@@ -301,7 +300,7 @@ def filter_duplicated_answers():
                                                              ] = respostes_row
 
                 else:  # Conserva resposta més recent
-                    if (r_time > resposta_anterior['time']):
+                    if r_time > resposta_anterior['time']:
                         key_errades = str(resposta_anterior) +\
                                      str(resposta_anterior['time'])
                         errades_dict[key_errades] = {}
@@ -534,6 +533,15 @@ def find_avaluated_object(s):
 
 
 def generate_statistics():
+    """def generate_statistics()
+    Descripció: Calcula la puntuació mitjana per grup, objecte i ítem, així
+                com el nombre de respostes per cada parella grup-objecte.
+    Entrada:    Cap.
+    Sortida:    Fitxer RESULT_FILE_STATISTICS.
+                Diccionari merged_grup_mp_dict amb els grups de 2n curs i mp
+                respectius que han estat fusionats amb el corresponent de 1r
+                curs per tractar-se de respostes de repetidors.
+    """
     statistics = open(RESULT_FILE_STATISTICS, 'w', encoding='utf-8')
     statistics_writer = csv.writer(statistics)
 
@@ -545,7 +553,8 @@ def generate_statistics():
     survey_avg_results_dict = collections.OrderedDict()
     survey_avg_results_dict = fill_survey_avg_results_dict(
                                   **survey_avg_results_dict)
-    survey_avg_results_dict = merge_repeaters_with_1st_course_class(
+    (survey_avg_results_dict,
+     merged_grup_mp_dict) = merge_repeaters_with_1st_course_class(
                                   **survey_avg_results_dict)
 
     for cicle, objecte in sorted(survey_avg_results_dict.items()):
@@ -560,6 +569,8 @@ def generate_statistics():
                 [departament, cicle, objecte] + items_list)
 
     statistics.close()
+
+    return merged_grup_mp_dict
 
 
 def fill_survey_avg_results_dict(**survey_avg_results_dict):
@@ -631,11 +642,11 @@ def add_qualifications_to_objects(**survey_avg_results_dict):
         for respostes_row in respostes_reader:
             item_number = 1
             for column in respostes_row:
-                if (respostes_row[column].isdigit() is True):
+                if respostes_row[column].isdigit() is True:
                     # Add to total points by item
                     if ('item' + str(item_number)
                         ) not in survey_avg_results_dict[
-                        respostes_row['GRUP']
+                            respostes_row['GRUP']
                             ][respostes_row['OBJECTE']].keys():
                         survey_avg_results_dict[
                             respostes_row['GRUP']
@@ -734,9 +745,15 @@ def merge_repeaters_with_1st_course_class(**survey_avg_results_dict):
                 és integrar les respostes dels estudiants de 2n curs, però que
                 repeteixen alguna UF d'un MP de 1r curs, amb el grup de 1r.
     Entrada:    Diccionari amb els resultats.
-    Sortida:    Diccionari amb els resultats de 1r i 2n curs especificats
-                fusionats i els corresponents de 2n curs eliminats.
+    Sortida:    Diccionari survey_avg_results_dict amb els resultats de 1r i 2n
+                curs especificats fusionats i els corresponents de 2n curs
+                eliminats. Diccionari amb els grups i el llistat de MP
+                fusionats.
+                Diccionari merged_grup_mp_dict amb els grups de 2n curs i mp
+                respectius que han estat fusionats amb el corresponent de 1r
+                curs per tractar-se de respostes de repetidors.
     """
+    merged_grup_mp_dict = {}
     for grup, objecte in survey_avg_results_dict.items():
         if '2' in grup:
             grup_2n = grup
@@ -772,20 +789,26 @@ def merge_repeaters_with_1st_course_class(**survey_avg_results_dict):
                                      objecte]['item' + str(i)][
                                      'TOTAL RESPONSES'])
 
+                        if grup_2n not in merged_grup_mp_dict.keys():
+                            merged_grup_mp_dict[grup_2n] = []
+                        merged_grup_mp_dict[grup_2n].append(objecte)
+
                         survey_avg_results_dict[grup_2n].pop(objecte, None)
 
                     except:
                         pass
 
-    return survey_avg_results_dict
+    return survey_avg_results_dict, merged_grup_mp_dict
 
 
-def generate_reports():
-    """def generateCommentsReport()
+def generate_reports(**merged_grup_mp_dict):
+    """def generateCommentsReport(**merged_grup_mp_dict)
     Descripció: Genera informes per cadascun dels departaments (Administració
                 i Informàtica) i el centre amb les avaluacions i comentaris
                 rebuts.
-    Entrada:    Cap
+    Entrada:    Diccionari merged_grup_mp_dict amb els grups de 2n curs i mp
+                respectius que han estat fusionats amb el corresponent de 1r
+                curs per tractar-se de respostes de repetidors.
     Sortida:    Fitxer REPORT_FILE_CENTRE
                 Fitxer REPORT_FILE_ADM
                 Fitxer REPORT_FILE_INF
@@ -820,6 +843,27 @@ def generate_reports():
                                 if comments != '':
                                     comments += '\n'
                                 comments += resultats_row['MP-COMENTARI'
+                                                          ].replace('\n', ' ')
+                            # Recupera els comentaris dels MP de 2n formats per
+                            # repetidors i fusionats amb els de 1r
+                            elif '1' in statistics_row['GRUP']:
+                                grup_2n = statistics_row['GRUP'
+                                                         ].replace('1', '2')
+                                if grup_2n in merged_grup_mp_dict.keys():
+                                    if statistics_row[
+                                      'OBJECTE'] in merged_grup_mp_dict[
+                                                      grup_2n]:
+                                        if (grup_2n == resultats_row[
+                                                        'GRUP'] and
+                                           statistics_row[
+                                             'OBJECTE'] == resultats_row[
+                                                             'OBJECTE'] and
+                                           resultats_row[
+                                             'MP-COMENTARI'] != ''):
+                                            if comments != '':
+                                                comments += '\n'
+                                            comments += resultats_row[
+                                                          'MP-COMENTARI'
                                                           ].replace('\n', ' ')
                     report_dept_writer.writerow([statistics_row['GRUP']] +
                                                 [statistics_row['OBJECTE']] +
@@ -1126,8 +1170,8 @@ if __name__ == '__main__':
     generate_list_of_answers()
     final_result_files_arranger()
 
-    generate_statistics()
+    merged_grup_mp_dict = generate_statistics()
 
     if OPTION_REPORTS == 1:
-        generate_reports()
+        generate_reports(**merged_grup_mp_dict)
     del_tmp_and_reg_files()
