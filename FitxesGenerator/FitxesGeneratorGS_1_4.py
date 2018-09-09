@@ -5,24 +5,24 @@ import csv
 import os
 import re
 
-"""FitxesGeneratorGS_1.3.py
+"""FitxesGeneratorGS_1.4.py
 Fitxers d'entrada:
     - alumnes.csv:
         * CSV extret de SAGA amb els camps:
             - NOM
-            - ALTRES TELÈFONS
             - DOC. IDENTITAT
+            - DATA NAIXEMENT
+            - GRUPSCLASSE
+            - NACIONALITAT
+            - ADREÇA
+            - LOCALITAT
+            - CP
+            - CORREU ELECTRÒNIC
+            - ALTRES TELÈFONS
             - MATRICULADES
             - CONVALIDACIONS
-            - DATA NAIXEMENT
             - EXEMPCIONS
-            - NACIONALITAT
             - PROCEDÈNCIA ACADÈMICA
-            - ADREÇA
-            - CORREU ELECTRÒNIC
-            - LOCALITAT
-            - GRUPSCLASSE
-            - CP
             - TREBALLA
         * separador de camps: tabulador
         * el fitxer ha de portar capçalera;
@@ -333,14 +333,19 @@ def fix_saga_inconsistencies(grup, mp, uf):
     # Cicle d'AF
     if "AD I FIN" in grup:
         if mp == "MP01":
-            if uf == "UF3":
-                uf = "UF3"
-            elif uf == "UF4":
+            if uf == "UF6":
                 uf = "UF1"
-            elif uf == "UF5":
+            elif uf == "UF7":
                 uf = "UF2"
 
-        if mp == "MP16":
+        elif mp == "MP15":
+            mp = "MP02"
+
+        elif mp == "MP03":
+            if uf == "UF5":
+                uf = "UF3"
+
+        elif mp == "MP16":
             mp = "MP05"
 
     # Cicles de DAM i ASIX:
