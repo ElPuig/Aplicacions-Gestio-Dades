@@ -10,30 +10,30 @@ import re
 # email alumne
 # GM: Test (responsables?, telèfon responsable?, correu responsable?)
 
-"""FitxesGeneratorGM_1.3.py
+"""FitxesGeneratorGM_1.4.py
 Fitxers d'entrada:
     - alumnes.csv:
         * CSV extret de SAGA amb els camps:
             - NOM
-            - ALTRES TELÈFONS
             - DOC. IDENTITAT
-            - MATRICULADES
-            - CONVALIDACIONS
             - DATA NAIXEMENT
-            - EXEMPCIONS
+            - GRUPSCLASSE
             - NACIONALITAT
-            - PARENTIU RESP. 1
-            - PROCEDÈNCIA ACADÈMICA
-            - RESPONSABLE 1
-            - TELÈFON RESP. 1
             - ADREÇA
-            - CORREU ELECTRÒNIC
             - LOCALITAT
+            - CP
+            - CORREU ELECTRÒNIC
+            - RESPONSABLE 1
+            - PARENTIU RESP. 1
+            - TELÈFON RESP. 1
             - RESPONSABLE 2
             - PARENTIU RESP. 2
-            - GRUPSCLASSE
             - TELÈFON RESP. 2
-            - CP
+            - ALTRES TELÈFONS
+            - MATRICULADES
+            - CONVALIDACIONS
+            - EXEMPCIONS
+            - PROCEDÈNCIA ACADÈMICA
             - TREBALLA
         * separador de camps: tabulador
         * el fitxer ha de portar capçalera;
@@ -408,7 +408,7 @@ def fix_saga_inconsistencies(grup, mp, uf):
     # Cicle de GA
     if "GEST" in grup:
         if mp == "MP07":
-            if uf == "UF4":
+            if uf == "UF8":
                 uf = "UF3"
 
     return mp, uf
