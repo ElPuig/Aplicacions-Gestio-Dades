@@ -1,5 +1,18 @@
 #!/usr/bin/python3.6
-# -*- coding: UTF-8 -*-
+
+"""
+    FPS 20190305: ideas      
+        Cambio de nombre: EnquestesProcessor_3.0.py o quizas eliminando el _3.0.py (quizas tenia sentido cuando era un solo fichero).
+        Mostrar info de bienvenida, con versión y copyright.        
+        Montar una opción verbose, para que muestre por consola lo que va haciendo (útil para entender como funciona).
+        Carpetas input y output, donde dejar y recoger los ficheros.        
+        Montar pruebas unitarias para comprobar que todo funciona (en carpeta test).
+        De ser posible, separar el core de la aplicación de consola (en carpeta core).        
+
+    Info:   https://docs.python.org/3/tutorial/modules.html
+            https://www.python.org/dev/peps/pep-0008/
+            https://docs.python.org/3/library/unittest.html
+"""
 
 """EnquestesProcessor_2.2:
 Fitxers d'entrada:
@@ -1145,7 +1158,6 @@ def check_source_file(source_file):
     Descripció: Comprova que el fitxer d'entrada existeix i no està buit.
     Entrada:    String amb el nom del fitxer d'entrada.
     Sortida:    Cap o crida a la funció
-                offer_navigation_menu_for_troublesome_source_files(source_file).
     """
     if not os.path.exists(source_file):
         print("\nNo s'ha trobat a la carpeta el fitxer «%s»." % source_file)
