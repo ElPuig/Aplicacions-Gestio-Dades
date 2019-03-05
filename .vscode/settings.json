@@ -1,0 +1,9 @@
+{
+    "python.pythonPath": "C:\\Users\\fher\\AppData\\Local\\Programs\\Python\\Python37-32\\python.exe",
+    "files.exclude": {
+        "**/.classpath": true,
+        "**/.project": true,
+        "**/.settings": true,
+        "**/.factorypath": true
+    }
+}
