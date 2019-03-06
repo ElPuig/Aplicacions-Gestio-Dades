@@ -2,12 +2,14 @@
 
 """
     FPS 20190305: ideas      
-        Cambio de nombre: EnquestesProcessor_3.0.py o quizas eliminando el _3.0.py (quizas tenia sentido cuando era un solo fichero).
-        Mostrar info de bienvenida, con versión y copyright.        
-        Montar una opción verbose, para que muestre por consola lo que va haciendo (útil para entender como funciona).
-        Carpetas input y output, donde dejar y recoger los ficheros.        
-        Montar pruebas unitarias para comprobar que todo funciona (en carpeta test).
-        De ser posible, separar el core de la aplicación de consola (en carpeta core).        
+        [X] Cambio de nombre: EnquestesProcessor_3.0.py o quizas eliminando el _3.0.py (quizas tenia sentido cuando era un solo fichero).
+        [X] Mostrar info de bienvenida, con versión y copyright.        
+        [X] Montar una opción verbose básica, para que muestre por consola lo que va haciendo.
+        [ ] Montar una opción verbose detallada, para que muestre por consola lo que va haciendo (útil para entender como funciona).
+        [ ] Setting en un fichero yaml.
+        [ ] Carpetas input y output, donde dejar y recoger los ficheros.        
+        [ ] Montar pruebas unitarias para comprobar que todo funciona (en carpeta test).
+        [ ] De ser posible, separar el core de la aplicación de consola (en carpeta core).        
 
     Info:   https://docs.python.org/3/tutorial/modules.html
             https://www.python.org/dev/peps/pep-0008/
@@ -77,6 +79,10 @@ OPTION_DUPLICATED_ANSWERS = 1
 #            2 = consulta a usuari
 OPTION_REPORTS = 1
 THRESHOLD_MERGE_GROUP_MP_ANSWERS = 4
+LOG_LEVEL = 1
+# reports -> 0 = no log
+#            1 = simple
+#            2 = detailed
 
 
 def filter_invalid_responses():
@@ -1169,21 +1175,49 @@ def check_source_file(source_file):
 
 
 if __name__ == '__main__':
+    print(  "\nProcessador automàtic d'enquestes v3.0"
+            "\nCopyright © 2019 INS Puig Castellar"
+            "\nUnder the GPL v3.0 license"
+            "\n")
+
+    if LOG_LEVEL > 0: print(  "Comprovant fitxers d'origen...", end=" ")
     check_source_file(SOURCE_FILE_STUDENTS_WITH_MP)
     check_source_file(SOURCE_FILE_STUDENT_ANSWERS)
+    if LOG_LEVEL > 0: print(  "OK")
 
+    if LOG_LEVEL > 0: print(  "Carregant configuració...", end=" ")
     setup_options()
+    if LOG_LEVEL > 0: print(  "OK")
+    
+    if LOG_LEVEL > 0: print(  "Carregant fitxers d'entrada...", end=" ")
     setup_files()
+    if LOG_LEVEL > 0: print(  "OK")
 
+    if LOG_LEVEL > 0: print(  "Filtrant respostes invàlides...", end=" ")
     filter_invalid_responses()
+    if LOG_LEVEL > 0: print(  "OK")
 
+    if LOG_LEVEL > 0: print(  "Filtrant respostes duplicades...", end=" ")
     filter_duplicated_answers()
+    if LOG_LEVEL > 0: print(  "OK")
 
+    if LOG_LEVEL > 0: print(  "Generant llistat de respostes...", end=" ")
     generate_list_of_answers()
-    final_result_files_arranger()
+    if LOG_LEVEL > 0: print(  "OK")
 
+    if LOG_LEVEL > 0: print(  "\Eliminant les dades sensibles...", end=" ")
+    final_result_files_arranger()
+    if LOG_LEVEL > 0: print(  "OK")
+
+    if LOG_LEVEL > 0: print(  "\Generant estadísitiques...", end=" ")
     merged_grup_mp_dict = generate_statistics()
+    if LOG_LEVEL > 0: print(  "OK")
 
     if OPTION_REPORTS == 1:
+        if LOG_LEVEL > 0: print(  "\Generant informes...", end=" ")
         generate_reports(**merged_grup_mp_dict)
+        if LOG_LEVEL > 0: print(  "OK")
+
+    if LOG_LEVEL > 0: print(  "\Eliminant fitxers temporals...", end=" ")
     del_tmp_and_reg_files()
+    if LOG_LEVEL > 0: print(  "OK")
