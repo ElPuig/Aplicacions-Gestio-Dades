@@ -1,7 +1,7 @@
 #!/usr/bin/python3.6
 # -*- coding: UTF-8 -*-
 
-"""EnquestesProcessor_2.2:
+"""EnquestesProcessor_2.3:
 Fitxers d'entrada:
     - alumnes-mp.csv: llista dels alumnes matriculats a cada CF,
                       amb el seu nom complet, l'adreça Xeill, el cicle i curs,
@@ -25,11 +25,10 @@ Fitxers de sortida:
     - temporals (opcionalment eliminables):
         * resultats_tmp.csv: conté les respostes vàlides amb la identificació
                             de l'estudiant
-
-Novetats respecte a la versió 2.1:
-    - modificacions per afegir als informes de departament els comentaris dels
-      estudiants de 2n curs que repeteixen alguna UF d'un MP de 1r curs i han
-      estat fusionats amb el grup de 1r
+Novetats respecte a la versió 2.2:
+    - modificacions per incorporar MP impartits a un mateix grup per més d'un
+      professor, i que a la nova versió del formulari són avaluats separadament
+      per l'alumnat
 """
 
 import csv
@@ -219,6 +218,25 @@ def extract_mp_number(full_mp_name):
         return full_mp_name
 
 
+def extract_teacher_from_dual_teacher_mp(full_mp_name):
+    """extract_teacher_from_dual_teacher_mp(full_mp_name)
+    Descripció: Extreu el nom del professor als MP que ho indiquen perquè
+                són impartits a un mateix grup per més d'un; en cas que
+                sigui un MP sense indicació del nom del docent retorna un
+                valor nul.
+    Entrada:    "MP10 - Gestió logística i comercial (Pere)".
+    Sortida:    "Pere".
+    """
+    try:
+        begin = full_mp_name.index('(') + 1
+        end = full_mp_name.index(')')
+
+        return full_mp_name[begin:end]
+
+    except:
+        return None
+
+
 def retrieve_groupclass(groupclass, *arranged_respostes_row):
     """retrieve_groupclass(group, *arranged_respostes_row)
     Descripció: Substitueix la informació del cicle pel curs i classe
@@ -404,6 +422,7 @@ def generate_list_of_answers():
             email = respostes_row['EMAIL']
             curs = respostes_row['GRUP']
             objecte = extract_mp_number(respostes_row['OBJECTE'])
+            teacher_name = extract_teacher_from_dual_teacher_mp(respostes_row['OBJECTE'])
 
             # Aconsegueix el llistat d'MP matriculats i respostes
             avaluatsList = alumnes_mp_dict.get(email)['objecte']
@@ -423,7 +442,15 @@ def generate_list_of_answers():
             # Escriu 'avaluat' a la posició de l'objecte avaluat
             for n, i in enumerate(avaluatsList):
                 if n == int(objecte):
-                    avaluatsList[n] = 'avaluat'
+                    if teacher_name is None:
+                        avaluatsList[n] = 'avaluat'
+                    # Si és un MP amb més d'un docent, comprova si s'ha registrat alguna
+                    # altra resposta i afegeix el nom del professor
+                    else:
+                        if avaluatsList[n].lower() == 'x':
+                            avaluatsList[n] = 'aval. ' + teacher_name
+                        else:
+                            avaluatsList[n] += ' i ' + teacher_name
 
             # Actualitza el llistat al diccionari
             alumnes_mp_dict[email]['objecte'] = avaluatsList
@@ -1175,3 +1202,4 @@ if __name__ == '__main__':
     if OPTION_REPORTS == 1:
         generate_reports(**merged_grup_mp_dict)
     del_tmp_and_reg_files()
+    
