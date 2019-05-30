@@ -348,7 +348,7 @@ def filter_duplicated_answers():
                                                  'referenced_timestamp'
                                                  ] = resposta_anterior['time']
 
-    resultats = open(RECORD_FILE_ANSWERS, 'w', encoding='utf-8')
+    resultats = open(RECORD_FILE_ANSWERS, 'w', encoding='utf-8', newline='')
     resultats_writer = csv.writer(resultats)
     # Encapçalats
     resultats_writer.writerow(
@@ -450,8 +450,7 @@ def generate_list_of_answers():
             alumnes_mp_dict[email]['objecte'] = avaluatsList
 
     # Escriu els resultats al fitxer de sortida
-    result = open(RESULT_FILE_STUDENTS_WITH_AVALUATED_MP,
-                  'w', encoding='utf-8')
+    result = open(RESULT_FILE_STUDENTS_WITH_AVALUATED_MP,'w', encoding='utf-8', newline='')
     result_writer = csv.writer(result)
     # Encapçalats
     result_writer.writerow(
@@ -482,7 +481,7 @@ def final_result_files_arranger():
     with open(RECORD_FILE_ERRORS, 'r', encoding='utf-8') as errades_rec:
         errades_rec_reader = csv.DictReader(errades_rec)
 
-        with open(RESULT_FILE_ERRORS, 'w', encoding='utf-8') as errades:
+        with open(RESULT_FILE_ERRORS, 'w', encoding='utf-8', newline='') as errades:
             errades_writer = csv.writer(errades)
 
             # Encapçalats
@@ -505,8 +504,7 @@ def final_result_files_arranger():
         resultats_rec_reader = csv.reader(resultats_rec)
         next(resultats_rec_reader, None)
 
-        with open(RESULT_FILE_ANSWERS, 'w', encoding='utf-8')\
-                as resultats:
+        with open(RESULT_FILE_ANSWERS, 'w', encoding='utf-8', newline='') as resultats:
             resultats_writer = csv.writer(resultats)
 
             # Encapçalats
@@ -563,7 +561,7 @@ def generate_statistics():
                 respectius que han estat fusionats amb el corresponent de 1r
                 curs per tractar-se de respostes de repetidors.
     """
-    statistics = open(RESULT_FILE_STATISTICS, 'w', encoding='utf-8')
+    statistics = open(RESULT_FILE_STATISTICS, 'w', encoding='utf-8', newline='')
     statistics_writer = csv.writer(statistics)
 
     # Encapçalat
@@ -838,7 +836,7 @@ def generate_reports(**merged_grup_mp_dict):
                   'INFORMÀTICA': REPORT_FILE_INF}
 
     for dept, file in depts_dict.items():
-        report_dept = open(depts_dict[dept], 'w', encoding='utf-8')
+        report_dept = open(depts_dict[dept], 'w', encoding='utf-8', newline='')
         report_dept_writer = csv.writer(report_dept)
         # Encapçalats
         report_dept_writer.writerow(
@@ -929,7 +927,7 @@ def generate_reports(**merged_grup_mp_dict):
                                                 [comments])
         report_dept.close()
 
-    report_centre = open(REPORT_FILE_CENTRE, 'w', encoding='utf-8')
+    report_centre = open(REPORT_FILE_CENTRE, 'w', encoding='utf-8', newline='')
     report_centre_writer = csv.writer(report_centre)
     # Encapçalats
     report_centre_writer.writerow(
@@ -1099,7 +1097,6 @@ def del_tmp_and_reg_files():
                   os.path.join(os.getcwd(), 'TmpFiles', TMP_FILE_ANSWERS))
     else:  # Elimina arxius temporals
         file_and_dir_remover(TMP_FILE_ANSWERS)
-        print('Arxius temporals eliminats.')
 
     if OPTION_TMP_RECORDS == 1:  # Conserva els registres
         # Crea subdirectori i mou dins registres
@@ -1114,7 +1111,6 @@ def del_tmp_and_reg_files():
     else:  # Elimina registres
         file_and_dir_remover(RECORD_FILE_ERRORS)
         file_and_dir_remover(RECORD_FILE_ANSWERS)
-        print('Registres temporals eliminats.')
 
     if OPTION_REPORTS == 1:  # Genera informes
         if not os.path.exists(os.path.join(os.getcwd(), 'Informes')):
@@ -1176,8 +1172,10 @@ def check_source_file(source_file):
         offer_navigation_menu_for_troublesome_source_files(source_file)
 
 def catch_exception(ex):
-    if LOG_LEVEL > 1: print(  "ERROR! " + str(ex))
-    elif LOG_LEVEL > 0: print(  "ERROR!")
+    if LOG_LEVEL > 1: print("ERROR! " + str(ex))
+    elif LOG_LEVEL > 0: print("ERROR!")
+    
+    print("Procés finalitzat amb errors.")
     sys.exit()
 
 if __name__ == '__main__':
@@ -1186,57 +1184,59 @@ if __name__ == '__main__':
             "\nUnder the GPL v3.0 license"
             "\n")
 
-    if LOG_LEVEL > 0: print(  "Comprovant fitxers d'origen...", end=" ")
+    print("Iniciant el procés:")
+
+    if LOG_LEVEL > 0: print("\tComprovant fitxers d'origen...", end=" ")
     try:
         check_source_file(SOURCE_FILE_STUDENTS_WITH_MP)
         check_source_file(SOURCE_FILE_STUDENT_ANSWERS)    
-        if LOG_LEVEL > 0: print(  "OK")
+        if LOG_LEVEL > 0: print("OK")
     except Exception as ex:
         catch_exception(ex)
 
-    if LOG_LEVEL > 0: print(  "Carregant configuració...", end=" ")
+    if LOG_LEVEL > 0: print("\tCarregant configuració...", end=" ")
     try:
         setup_options()
-        if LOG_LEVEL > 0: print(  "OK")
+        if LOG_LEVEL > 0: print("OK")
     except Exception as ex:
         catch_exception(ex)
     
-    if LOG_LEVEL > 0: print(  "Carregant fitxers d'entrada...", end=" ")
+    if LOG_LEVEL > 0: print("\tCarregant fitxers d'entrada...", end=" ")
     try:
         setup_files()
-        if LOG_LEVEL > 0: print(  "OK")
+        if LOG_LEVEL > 0: print("OK")
     except Exception as ex:
         catch_exception(ex)
 
-    if LOG_LEVEL > 0: print(  "Filtrant respostes invàlides...", end=" ")
+    if LOG_LEVEL > 0: print("\tFiltrant respostes invàlides...", end=" ")
     try:
         filter_invalid_responses()
-        if LOG_LEVEL > 0: print(  "OK")
+        if LOG_LEVEL > 0: print("OK")
     except Exception as ex:
        catch_exception(ex)
 
-    if LOG_LEVEL > 0: print(  "Filtrant respostes duplicades...", end=" ")
+    if LOG_LEVEL > 0: print("\tFiltrant respostes duplicades...", end=" ")
     try:
         filter_duplicated_answers()
-        if LOG_LEVEL > 0: print(  "OK")
+        if LOG_LEVEL > 0: print("OK")
     except Exception as ex:
         catch_exception(ex)
 
-    if LOG_LEVEL > 0: print(  "Generant llistat de respostes...", end=" ")
+    if LOG_LEVEL > 0: print("\tGenerant llistat de respostes...", end=" ")
     try:
         generate_list_of_answers()
-        if LOG_LEVEL > 0: print(  "OK")
+        if LOG_LEVEL > 0: print("OK")
     except Exception as ex:
         catch_exception(ex)
 
-    if LOG_LEVEL > 0: print(  "Eliminant les dades sensibles...", end=" ")
+    if LOG_LEVEL > 0: print("\tEliminant les dades sensibles...", end=" ")
     try:
         final_result_files_arranger()
         if LOG_LEVEL > 0: print(  "OK")
     except Exception as ex:
         catch_exception(ex)
 
-    if LOG_LEVEL > 0: print(  "\Generant estadísitiques...", end=" ")
+    if LOG_LEVEL > 0: print("\tGenerant estadísitiques...", end=" ")
     try:
         merged_grup_mp_dict = generate_statistics()
         if LOG_LEVEL > 0: print(  "OK")
@@ -1244,16 +1244,18 @@ if __name__ == '__main__':
         catch_exception(ex)
 
     if OPTION_REPORTS == 1:
-        if LOG_LEVEL > 0: print(  "\Generant informes...", end=" ")
+        if LOG_LEVEL > 0: print("\tGenerant informes...", end=" ")
         try:
             generate_reports(**merged_grup_mp_dict)
             if LOG_LEVEL > 0: print(  "OK")
         except Exception as ex:
             catch_exception(ex)
 
-    if LOG_LEVEL > 0: print(  "\Eliminant fitxers temporals...", end=" ")
+    if LOG_LEVEL > 0: print("\tEliminant fitxers temporals...", end=" ")
     try:
         del_tmp_and_reg_files()
-        if LOG_LEVEL > 0: print(  "OK")
+        if LOG_LEVEL > 0: print("OK")
     except Exception as ex:
         catch_exception(ex)
+
+    print("Procés finalitzat correctament!\n")
