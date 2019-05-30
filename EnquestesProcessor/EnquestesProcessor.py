@@ -7,7 +7,8 @@
         [X] Montar una opción verbose básica, para que muestre por consola lo que va haciendo.
         [ ] Montar una opción verbose detallada, para que muestre por consola lo que va haciendo (útil para entender como funciona).
         [ ] Setting en un fichero yaml.
-        [ ] Carpetas input y output, donde dejar y recoger los ficheros.        
+        [ ] Carpetas input y output, donde dejar y recoger los ficheros.
+        [ ] Opción de setear la ruta de input y output al invocar el programa por parámetro        
         [ ] Montar pruebas unitarias para comprobar que todo funciona (en carpeta test).
         [ ] De ser posible, separar el core de la aplicación de consola (en carpeta core).        
 
@@ -51,6 +52,7 @@ import csv
 import collections
 from dateutil import parser
 import errno
+import sys
 import os
 
 RECORD_FILE_ERRORS = 'errades_rec.csv'
@@ -94,7 +96,7 @@ def filter_invalid_responses():
     Sortida:    Fitxer TMP_FILE_ANSWERS
                 Fitxer RECORD_FILE_ERRORS
     """
-    resultats_tmp = open(TMP_FILE_ANSWERS, 'w', encoding='utf-8')
+    resultats_tmp = open(TMP_FILE_ANSWERS, 'w', encoding='utf-8', newline='')
     resultats_tmp_writer = csv.writer(resultats_tmp)
 
     # Encapçalats
@@ -110,7 +112,8 @@ def filter_invalid_responses():
                                  'CENTRE-ÍTEM3', 'CENTRE-ÍTEM4',
                                  'CENTRE-ÍTEM5', 'CENTRE-ÍTEM6',
                                  'CENTRE-COMENTARI'])
-    errades_rec = open(RECORD_FILE_ERRORS, 'w', encoding='utf-8')
+
+    errades_rec = open(RECORD_FILE_ERRORS, 'w', encoding='utf-8', newline='')
     errades_rec_writer = csv.writer(errades_rec)
 
     # Encapçalats
@@ -142,8 +145,7 @@ def filter_invalid_responses():
                                           respostes_row[8:])
             email_found = False
 
-            with open(SOURCE_FILE_STUDENTS_WITH_MP, 'r', encoding='utf-8')\
-                    as alumnes:
+            with open(SOURCE_FILE_STUDENTS_WITH_MP, 'r', encoding='utf-8') as alumnes:
                 alumnes_reader = csv.DictReader(alumnes)
                 for alumnes_row in alumnes_reader:
                     error_found = False
@@ -1173,6 +1175,10 @@ def check_source_file(source_file):
         print("\nEl fitxer «%s» està buit." % source_file)
         offer_navigation_menu_for_troublesome_source_files(source_file)
 
+def catch_exception(ex):
+    if LOG_LEVEL > 1: print(  "ERROR! " + str(ex))
+    elif LOG_LEVEL > 0: print(  "ERROR!")
+    sys.exit()
 
 if __name__ == '__main__':
     print(  "\nProcessador automàtic d'enquestes v3.0"
@@ -1181,43 +1187,73 @@ if __name__ == '__main__':
             "\n")
 
     if LOG_LEVEL > 0: print(  "Comprovant fitxers d'origen...", end=" ")
-    check_source_file(SOURCE_FILE_STUDENTS_WITH_MP)
-    check_source_file(SOURCE_FILE_STUDENT_ANSWERS)
-    if LOG_LEVEL > 0: print(  "OK")
+    try:
+        check_source_file(SOURCE_FILE_STUDENTS_WITH_MP)
+        check_source_file(SOURCE_FILE_STUDENT_ANSWERS)    
+        if LOG_LEVEL > 0: print(  "OK")
+    except Exception as ex:
+        catch_exception(ex)
 
     if LOG_LEVEL > 0: print(  "Carregant configuració...", end=" ")
-    setup_options()
-    if LOG_LEVEL > 0: print(  "OK")
+    try:
+        setup_options()
+        if LOG_LEVEL > 0: print(  "OK")
+    except Exception as ex:
+        catch_exception(ex)
     
     if LOG_LEVEL > 0: print(  "Carregant fitxers d'entrada...", end=" ")
-    setup_files()
-    if LOG_LEVEL > 0: print(  "OK")
+    try:
+        setup_files()
+        if LOG_LEVEL > 0: print(  "OK")
+    except Exception as ex:
+        catch_exception(ex)
 
     if LOG_LEVEL > 0: print(  "Filtrant respostes invàlides...", end=" ")
-    filter_invalid_responses()
-    if LOG_LEVEL > 0: print(  "OK")
+    try:
+        filter_invalid_responses()
+        if LOG_LEVEL > 0: print(  "OK")
+    except Exception as ex:
+       catch_exception(ex)
 
     if LOG_LEVEL > 0: print(  "Filtrant respostes duplicades...", end=" ")
-    filter_duplicated_answers()
-    if LOG_LEVEL > 0: print(  "OK")
+    try:
+        filter_duplicated_answers()
+        if LOG_LEVEL > 0: print(  "OK")
+    except Exception as ex:
+        catch_exception(ex)
 
     if LOG_LEVEL > 0: print(  "Generant llistat de respostes...", end=" ")
-    generate_list_of_answers()
-    if LOG_LEVEL > 0: print(  "OK")
+    try:
+        generate_list_of_answers()
+        if LOG_LEVEL > 0: print(  "OK")
+    except Exception as ex:
+        catch_exception(ex)
 
-    if LOG_LEVEL > 0: print(  "\Eliminant les dades sensibles...", end=" ")
-    final_result_files_arranger()
-    if LOG_LEVEL > 0: print(  "OK")
+    if LOG_LEVEL > 0: print(  "Eliminant les dades sensibles...", end=" ")
+    try:
+        final_result_files_arranger()
+        if LOG_LEVEL > 0: print(  "OK")
+    except Exception as ex:
+        catch_exception(ex)
 
     if LOG_LEVEL > 0: print(  "\Generant estadísitiques...", end=" ")
-    merged_grup_mp_dict = generate_statistics()
-    if LOG_LEVEL > 0: print(  "OK")
+    try:
+        merged_grup_mp_dict = generate_statistics()
+        if LOG_LEVEL > 0: print(  "OK")
+    except Exception as ex:
+        catch_exception(ex)
 
     if OPTION_REPORTS == 1:
         if LOG_LEVEL > 0: print(  "\Generant informes...", end=" ")
-        generate_reports(**merged_grup_mp_dict)
-        if LOG_LEVEL > 0: print(  "OK")
+        try:
+            generate_reports(**merged_grup_mp_dict)
+            if LOG_LEVEL > 0: print(  "OK")
+        except Exception as ex:
+            catch_exception(ex)
 
     if LOG_LEVEL > 0: print(  "\Eliminant fitxers temporals...", end=" ")
-    del_tmp_and_reg_files()
-    if LOG_LEVEL > 0: print(  "OK")
+    try:
+        del_tmp_and_reg_files()
+        if LOG_LEVEL > 0: print(  "OK")
+    except Exception as ex:
+        catch_exception(ex)
