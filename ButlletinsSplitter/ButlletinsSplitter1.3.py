@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-ButlletinsSplitter1.2.py
+ButlletinsSplitter1.3.py
 Fitxer d'entrada:     Fitxer PDF amb els butlletins de notes d'un grup sencer
                       amb el nom «informe.pdf», preparat o no per la impressió
                       a doble cara.
@@ -21,7 +21,7 @@ def main():
     butlletins_reader = PyPDF2.PdfFileReader(butlletins)
 
     total_pages = butlletins_reader.getNumPages()
-    page_num = 0
+    page_num = 1
     current_student = None
 
     # Iterates through whole PDF source file
@@ -38,7 +38,7 @@ def main():
         # Iterates through new individually created PDF file
         while (current_student == student and
                current_student is not None and
-               page_num <= total_pages):
+               page_num <= total_pages-1):
             output_writer.addPage(page_text)
 
             page_num += 1
