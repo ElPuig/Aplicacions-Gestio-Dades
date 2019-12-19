@@ -21,7 +21,7 @@ def main():
     butlletins_reader = PyPDF2.PdfFileReader(butlletins)
 
     total_pages = butlletins_reader.getNumPages()
-    page_num = 1
+    page_num = 0
     current_student = None
 
     # Iterates through whole PDF source file
