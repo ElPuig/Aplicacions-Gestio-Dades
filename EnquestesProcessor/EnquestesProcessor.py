@@ -3,16 +3,16 @@ from core.terminal import Terminal
 from core.terminal import TerminalColors
 
 """
-    FPS 20190305: ideas      
+    FPS 20200121: ideas      
         [X] Cambio de nombre: EnquestesProcessor_3.0.py o quizas eliminando el _3.0.py (quizas tenia sentido cuando era un solo fichero).
         [X] Mostrar info de bienvenida, con versión y copyright.        
         [X] Montar una opción verbose básica, para que muestre por consola lo que va haciendo.
-        [ ] Montar una opción verbose detallada, para que muestre por consola lo que va haciendo (útil para entender como funciona).
-        [ ] Setting en un fichero yaml.
-        [ ] Carpetas input y output, donde dejar y recoger los ficheros.
-        [ ] Opción de setear la ruta de input y output al invocar el programa por parámetro        
+        [ ] Montar una opción verbose detallada, para que muestre por consola lo que va haciendo (útil para entender como funciona).        
+        [ ] Carpetas input y output, donde dejar y recoger los ficheros.        
         [ ] Montar pruebas unitarias para comprobar que todo funciona (en carpeta test).
-        [ ] De ser posible, separar el core de la aplicación de consola (en carpeta core).        
+        [ ] De ser posible, separar el core de la aplicación de consola (en carpeta core) para que se pueda usar como aplicación o como libreria        
+        [ ] Settings en un fichero yaml.
+        [ ] Opción de sobreescribir todos los settings via parámetro al llamar a la aplicación
 
     Info:   https://docs.python.org/3/tutorial/modules.html
             https://www.python.org/dev/peps/pep-0008/
@@ -1224,68 +1224,68 @@ if __name__ == '__main__':
     except Exception as ex:
         catch_exception(ex)
 
-    if LOG_LEVEL > 0: terminal.writeln("Carregant configuració...")
+    if LOG_LEVEL > 0: terminal.write("Carregant configuració...")
     try:
         setup_options()
-        if LOG_LEVEL > 0: print("OK")
+        succeed()
     except Exception as ex:
         catch_exception(ex)
     
-    if LOG_LEVEL > 0: terminal.writeln("Carregant fitxers d'entrada...")
+    if LOG_LEVEL > 0: terminal.write("Carregant fitxers d'entrada...")
     try:
         setup_files()
-        if LOG_LEVEL > 0: print("OK")
+        succeed()
     except Exception as ex:
         catch_exception(ex)
 
-    if LOG_LEVEL > 0: terminal.writeln("Filtrant respostes invàlides...")
+    if LOG_LEVEL > 0: terminal.write("Filtrant respostes invàlides...")
     try:
         filter_invalid_responses()
-        if LOG_LEVEL > 0: print("OK")
+        succeed()
     except Exception as ex:
        catch_exception(ex)
 
-    if LOG_LEVEL > 0: terminal.writeln("Filtrant respostes duplicades...")
+    if LOG_LEVEL > 0: terminal.write("Filtrant respostes duplicades...")
     try:
         filter_duplicated_answers()
-        if LOG_LEVEL > 0: print("OK")
+        succeed()
     except Exception as ex:
         catch_exception(ex)
 
-    if LOG_LEVEL > 0: terminal.writeln("Generant llistat de respostes...")
+    if LOG_LEVEL > 0: terminal.write("Generant llistat de respostes...")
     try:
         generate_list_of_answers()
-        if LOG_LEVEL > 0: print("OK")
+        succeed()
     except Exception as ex:
         catch_exception(ex)
 
-    if LOG_LEVEL > 0: terminal.writeln("Eliminant les dades sensibles...")
+    if LOG_LEVEL > 0: terminal.write("Eliminant les dades sensibles...")
     try:
         final_result_files_arranger()
-        if LOG_LEVEL > 0: print(  "OK")
+        succeed()
     except Exception as ex:
         catch_exception(ex)
 
-    if LOG_LEVEL > 0: terminal.writeln("Generant estadísitiques...")
+    if LOG_LEVEL > 0: terminal.write("Generant estadísitiques...")
     try:
         merged_grup_mp_dict = generate_statistics()
-        if LOG_LEVEL > 0: print(  "OK")
+        succeed()
     except Exception as ex:
         catch_exception(ex)
 
     if OPTION_REPORTS == 1:
-        if LOG_LEVEL > 0: terminal.writeln("Generant informes...")
+        if LOG_LEVEL > 0: terminal.write("Generant informes...")
         try:
             generate_reports(**merged_grup_mp_dict)
-            if LOG_LEVEL > 0: print(  "OK")
+            succeed()
         except Exception as ex:
             catch_exception(ex)
 
-    if LOG_LEVEL > 0: terminal.writeln("Eliminant fitxers temporals...")
+    if LOG_LEVEL > 0: terminal.write("Eliminant fitxers temporals...")
     try:
         del_tmp_and_reg_files()
-        if LOG_LEVEL > 0: print("OK")
+        succeed()
     except Exception as ex:
         catch_exception(ex)
 
-    print("Procés finalitzat correctament!\n")
+    terminal.writeln("Procés finalitzat correctament!")
