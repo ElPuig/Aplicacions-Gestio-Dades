@@ -1,4 +1,6 @@
 #!/usr/bin/python3.6
+from core.terminal import Terminal
+from core.terminal import TerminalColors
 
 """
     FPS 20190305: ideas      
@@ -81,7 +83,7 @@ OPTION_DUPLICATED_ANSWERS = 1
 #            2 = consulta a usuari
 OPTION_REPORTS = 1
 THRESHOLD_MERGE_GROUP_MP_ANSWERS = 4
-LOG_LEVEL = 1
+LOG_LEVEL = 2
 # reports -> 0 = no log
 #            1 = simple
 #            2 = detailed
@@ -1139,23 +1141,35 @@ def offer_navigation_menu_for_troublesome_source_files(source_file):
                 interrompre'l.
     Entrada:    String amb el nom del fitxer d'entrada.
     Sortida:    Executa una determinada funció segons l'opció triada.
-    """
-    option = input("\nQuè voleu fer?:"
-                   "\n\t1. Solucionar el problema i seguir "
-                   "executant el programa"
-                   "\n\t2. Voleu sortir del programa"
-                   "\nTrieu una opció (1/2): ")
+    """    
+    terminal.tab()
+    terminal.breakline()
+    terminal.writeln("Què voleu fer? Trieu una opció:", TerminalColors.UNDERLINE)
 
+    terminal.tab()
+    terminal.write("1. ", TerminalColors.CYAN)
+    terminal.writeln("Solucionar el problema i seguir.")
+    terminal.write("2. ", TerminalColors.CYAN)
+    terminal.writeln("Voleu sortir del programa")
+    terminal.untab()
+
+    option = input()
     if option == "1":
-        input("\nSi us plau, assegureu-vos de què heu "
-              "solucionat el problema i premeu «Enter».")
-        check_source_file(source_file)
-    elif option == "2":
-        exit()
-    else:
-        print("\nATENCIÓ: Si us plau, trieu «1» o «2».")
-        offer_navigation_menu_for_troublesome_source_files(source_file)
+        terminal.writeln("Si us plau, assegureu-vos de què heu solucionat el problema i premeu «Enter».")
+        terminal.untab()
 
+        input()
+        if LOG_LEVEL > 0: terminal.write("Reintentant... ")
+        check_source_file(source_file)
+
+    elif option == "2":
+        terminal.untab()
+        exit()
+
+    else:
+        terminal.writeln("Si us plau, assegureu-vos de què heu solucionat una opció vàlida.")
+        terminal.untab()
+        offer_navigation_menu_for_troublesome_source_files(source_file)
 
 def check_source_file(source_file):
     """def check_source_file(source_file)
@@ -1164,79 +1178,95 @@ def check_source_file(source_file):
     Sortida:    Cap o crida a la funció
     """
     if not os.path.exists(source_file):
-        print("\nNo s'ha trobat a la carpeta el fitxer «%s»." % source_file)
+        error("No s'ha trobat a la carpeta el fitxer «%s»." % source_file)        
         offer_navigation_menu_for_troublesome_source_files(source_file)
 
     if os.path.getsize(source_file) == 0:
         print("\nEl fitxer «%s» està buit." % source_file)
         offer_navigation_menu_for_troublesome_source_files(source_file)
 
-def catch_exception(ex):
-    if LOG_LEVEL > 1: print("ERROR! " + str(ex))
-    elif LOG_LEVEL > 0: print("ERROR!")
-    
-    print("Procés finalitzat amb errors.")
+def catch_exception(ex):    
+    error(str(ex))    
     sys.exit()
 
+def succeed():
+    if LOG_LEVEL > 0: 
+        terminal.writeln("OK", TerminalColors.DARKGREEN)
+
+def error(details):
+    msg = ""
+    if LOG_LEVEL > 0: msg += "ERROR"
+    if LOG_LEVEL > 1: msg += ": " + details
+    
+    terminal.writeln(msg, TerminalColors.RED)
+
 if __name__ == '__main__':
-    print(  "\nProcessador automàtic d'enquestes v3.0"
-            "\nCopyright © 2019 INS Puig Castellar"
-            "\nUnder the GPL v3.0 license"
-            "\n")
+    terminal = Terminal()
+    terminal.breakline()    
+    terminal.write("Processador automàtic d'enquestes: ", TerminalColors.YELLOW)
+    terminal.writeln("v3.0")
+    terminal.write("Copyright © 2019: ", TerminalColors.YELLOW)
+    terminal.writeln("INS Puig Castellar")
+    terminal.write("Under the GPL v3.0 license: ", TerminalColors.YELLOW)
+    terminal.writeln("https://github.com/ElPuig/Aplicacions-Gestio-Dades")
+    
+    terminal.breakline()        
+    terminal.writeln("Iniciant el procés:")
+    
+    terminal.breakline()    
+    terminal.tab()
 
-    print("Iniciant el procés:")
-
-    if LOG_LEVEL > 0: print("\tComprovant fitxers d'origen...", end=" ")
+    if LOG_LEVEL > 0: terminal.write("Comprovant fitxers d'origen... ")
     try:
         check_source_file(SOURCE_FILE_STUDENTS_WITH_MP)
         check_source_file(SOURCE_FILE_STUDENT_ANSWERS)    
-        if LOG_LEVEL > 0: print("OK")
+        succeed()
     except Exception as ex:
         catch_exception(ex)
 
-    if LOG_LEVEL > 0: print("\tCarregant configuració...", end=" ")
+    if LOG_LEVEL > 0: terminal.writeln("Carregant configuració...")
     try:
         setup_options()
         if LOG_LEVEL > 0: print("OK")
     except Exception as ex:
         catch_exception(ex)
     
-    if LOG_LEVEL > 0: print("\tCarregant fitxers d'entrada...", end=" ")
+    if LOG_LEVEL > 0: terminal.writeln("Carregant fitxers d'entrada...")
     try:
         setup_files()
         if LOG_LEVEL > 0: print("OK")
     except Exception as ex:
         catch_exception(ex)
 
-    if LOG_LEVEL > 0: print("\tFiltrant respostes invàlides...", end=" ")
+    if LOG_LEVEL > 0: terminal.writeln("Filtrant respostes invàlides...")
     try:
         filter_invalid_responses()
         if LOG_LEVEL > 0: print("OK")
     except Exception as ex:
        catch_exception(ex)
 
-    if LOG_LEVEL > 0: print("\tFiltrant respostes duplicades...", end=" ")
+    if LOG_LEVEL > 0: terminal.writeln("Filtrant respostes duplicades...")
     try:
         filter_duplicated_answers()
         if LOG_LEVEL > 0: print("OK")
     except Exception as ex:
         catch_exception(ex)
 
-    if LOG_LEVEL > 0: print("\tGenerant llistat de respostes...", end=" ")
+    if LOG_LEVEL > 0: terminal.writeln("Generant llistat de respostes...")
     try:
         generate_list_of_answers()
         if LOG_LEVEL > 0: print("OK")
     except Exception as ex:
         catch_exception(ex)
 
-    if LOG_LEVEL > 0: print("\tEliminant les dades sensibles...", end=" ")
+    if LOG_LEVEL > 0: terminal.writeln("Eliminant les dades sensibles...")
     try:
         final_result_files_arranger()
         if LOG_LEVEL > 0: print(  "OK")
     except Exception as ex:
         catch_exception(ex)
 
-    if LOG_LEVEL > 0: print("\tGenerant estadísitiques...", end=" ")
+    if LOG_LEVEL > 0: terminal.writeln("Generant estadísitiques...")
     try:
         merged_grup_mp_dict = generate_statistics()
         if LOG_LEVEL > 0: print(  "OK")
@@ -1244,14 +1274,14 @@ if __name__ == '__main__':
         catch_exception(ex)
 
     if OPTION_REPORTS == 1:
-        if LOG_LEVEL > 0: print("\tGenerant informes...", end=" ")
+        if LOG_LEVEL > 0: terminal.writeln("Generant informes...")
         try:
             generate_reports(**merged_grup_mp_dict)
             if LOG_LEVEL > 0: print(  "OK")
         except Exception as ex:
             catch_exception(ex)
 
-    if LOG_LEVEL > 0: print("\tEliminant fitxers temporals...", end=" ")
+    if LOG_LEVEL > 0: terminal.writeln("Eliminant fitxers temporals...")
     try:
         del_tmp_and_reg_files()
         if LOG_LEVEL > 0: print("OK")
