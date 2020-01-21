@@ -1,7 +1,13 @@
 #!/usr/bin/python3.6
 from core.terminal import Terminal
 from core.terminal import TerminalColors
-from core.parser import Parser
+from core.worker import Worker
+import csv
+import collections
+from dateutil import parser
+import errno
+import sys
+import os
 
 """
     FPS 20200121: ideas      
@@ -50,14 +56,6 @@ Novetats respecte a la versió 2.1:
       estudiants de 2n curs que repeteixen alguna UF d'un MP de 1r curs i han
       estat fusionats amb el grup de 1r
 """
-
-import csv
-import collections
-from dateutil import parser
-import errno
-import sys
-import os
-
 
 def setup_options():
     """def setup_options(
