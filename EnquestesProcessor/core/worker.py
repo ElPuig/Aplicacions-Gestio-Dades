@@ -786,16 +786,7 @@ class Worker:
         os.remove(os.path.join(os.getcwd(), 'RcdFiles', self.RECORD_FILE_ANSWERS))
         os.remove(os.path.join(os.getcwd(), 'Informes', self.REPORT_FILE_CENTRE))
         os.remove(os.path.join(os.getcwd(), 'Informes', self.REPORT_FILE_ADM))
-        os.remove(os.path.join(os.getcwd(), 'Informes', self.REPORT_FILE_INF))
-
-    def answer_from_string_to_binary(self, text):
-        """
-        Descripció: Converteix una string amb una 's'/'y' o amb una 'n' en un int 0 o 1 respectivament.
-        Entrada:    string
-        Sortida:    int
-        Exemple:    'n' retorna 1
-        """
-        return 1 if text == 'y' or text == 's' or text == '2' else 0            
+        os.remove(os.path.join(os.getcwd(), 'Informes', self.REPORT_FILE_INF))       
 
     def del_tmp_and_reg_files(self):
         """
