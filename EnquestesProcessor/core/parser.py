@@ -915,7 +915,7 @@ class Parser:
                                             [comments])
         report_centre.close()
     
-    def setup_files():
+    def clean_files():
         """
         Descripció: Elimina fitxers de sortida anteriors que puguin existir al directori.
         Entrada:    Cap.

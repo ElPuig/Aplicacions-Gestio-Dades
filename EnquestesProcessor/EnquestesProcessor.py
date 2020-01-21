@@ -123,7 +123,7 @@ def del_tmp_and_reg_files():
                   os.path.join(os.getcwd(), TMP_FILE_ANSWERS),
                   os.path.join(os.getcwd(), 'TmpFiles', TMP_FILE_ANSWERS))
     else:  # Elimina arxius temporals
-        file_and_dir_remover(TMP_FILE_ANSWERS)
+        os.remove(TMP_FILE_ANSWERS)
 
     if OPTION_TMP_RECORDS == 1:  # Conserva els registres
         # Crea subdirectori i mou dins registres
@@ -136,8 +136,8 @@ def del_tmp_and_reg_files():
                   os.path.join(os.getcwd(), RECORD_FILE_ANSWERS),
                   os.path.join(os.getcwd(), 'RcdFiles', RECORD_FILE_ANSWERS))
     else:  # Elimina registres
-        file_and_dir_remover(RECORD_FILE_ERRORS)
-        file_and_dir_remover(RECORD_FILE_ANSWERS)
+        os.remove(RECORD_FILE_ERRORS)
+        os.remove(RECORD_FILE_ANSWERS)
 
     if OPTION_REPORTS == 1:  # Genera informes
         if not os.path.exists(os.path.join(os.getcwd(), 'Informes')):
@@ -258,7 +258,7 @@ if __name__ == '__main__':
     
     if LOG_LEVEL > 0: terminal.write("Carregant fitxers d'entrada...")
     try:
-        setup_files()
+        clean_files()
         succeed()
     except Exception as ex:
         catch_exception(ex)
