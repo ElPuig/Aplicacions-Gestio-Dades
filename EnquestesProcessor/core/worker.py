@@ -787,3 +787,64 @@ class Worker:
         os.remove(os.path.join(os.getcwd(), 'Informes', self.REPORT_FILE_CENTRE))
         os.remove(os.path.join(os.getcwd(), 'Informes', self.REPORT_FILE_ADM))
         os.remove(os.path.join(os.getcwd(), 'Informes', self.REPORT_FILE_INF))
+
+    def answer_from_string_to_binary(self, text):
+        """
+        Descripció: Converteix una string amb una 's'/'y' o amb una 'n' en un int 0 o 1 respectivament.
+        Entrada:    string
+        Sortida:    int
+        Exemple:    'n' retorna 1
+        """
+        return 1 if text == 'y' or text == 's' or text == '2' else 0            
+
+    def del_tmp_and_reg_files(self):
+        """
+        Descripció: Ignora o elimina els fitxers i registres temporals.
+        Entrada:    Cap.
+        Sortida:    Cap.
+        """        
+
+        if self.OPTION_TMP_FILES == 1:  # Conserva arxius temporals
+            # Crea subdirectori i mou dins arxius temporals
+            if not os.path.exists(os.path.join(os.getcwd(), 'TmpFiles')):
+                os.makedirs(os.path.join(os.getcwd(), 'TmpFiles'))
+            
+            os.rename(os.path.join(os.getcwd(), self.TMP_FILE_ANSWERS), os.path.join(os.getcwd(), 'TmpFiles', self.TMP_FILE_ANSWERS))
+        else:  # Elimina arxius temporals
+            os.remove(self.TMP_FILE_ANSWERS)
+
+        if self.OPTION_TMP_RECORDS == 1:  # Conserva els registres
+            # Crea subdirectori i mou dins registres
+            if not os.path.exists(os.path.join(os.getcwd(), 'RcdFiles')):
+                os.makedirs(os.path.join(os.getcwd(), 'RcdFiles'))
+
+            os.rename(
+                os.path.join(os.getcwd(), self.RECORD_FILE_ERRORS),
+                os.path.join(os.getcwd(), 'RcdFiles', self.RECORD_FILE_ERRORS)
+            )
+                    
+            os.rename(
+                os.path.join(os.getcwd(), self.RECORD_FILE_ANSWERS),
+                os.path.join(os.getcwd(), 'RcdFiles', self.RECORD_FILE_ANSWERS)
+            )
+        else:  # Elimina registres
+            os.remove(self.RECORD_FILE_ERRORS)
+            os.remove(self.RECORD_FILE_ANSWERS)
+
+        if self.OPTION_REPORTS == 1:  # Genera informes
+            if not os.path.exists(os.path.join(os.getcwd(), 'Informes')):
+                os.makedirs(os.path.join(os.getcwd(), 'Informes'))
+            os.rename(
+                os.path.join(os.getcwd(), self.REPORT_FILE_CENTRE),
+                os.path.join(os.getcwd(), 'Informes', self.REPORT_FILE_CENTRE)
+            )
+
+            os.rename(
+                os.path.join(os.getcwd(), self.REPORT_FILE_ADM),
+                os.path.join(os.getcwd(),'Informes', self.REPORT_FILE_ADM)
+            )
+
+            os.rename(
+                os.path.join(os.getcwd(), self.REPORT_FILE_INF),
+                os.path.join(os.getcwd(), 'Informes', self.REPORT_FILE_INF)
+            )

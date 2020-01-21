@@ -67,11 +67,7 @@ def setup_options():
     Sortida:    Defineix les variables globals OPTION_TMP_FILES,
                 OPTION_TMP_RECORDS, OPTION_DUPLICATED_ANSWERS en el seu cas.
     """
-    global OPTION_TMP_FILES
-    global OPTION_TMP_RECORDS
-    global OPTION_DUPLICATED_ANSWERS
-    global OPTION_REPORTS
-
+ 
     while OPTION_TMP_FILES != 0 and OPTION_TMP_FILES != 1:
         OPTION_TMP_FILES = answer_from_string_to_binary(input(
                     "Voleu conservar els arxius temporals? (s/n) ").lower())
@@ -88,73 +84,6 @@ def setup_options():
     while OPTION_REPORTS != 0 and OPTION_REPORTS != 1:
         OPTION_REPORTS = answer_from_string_to_binary(input(
                     "Desitja generar els informes? (s/n) ").lower())
-
-
-def answer_from_string_to_binary(s):
-    """def answer_from_string_to_binary(s)
-    Descripció: Converteix una string amb una 's'/'y' o amb una 'n' en un int
-                0 o 1 respectivament.
-    Entrada:    string
-    Sortida:    int
-    Exemple:    'n' retorna 1
-    """
-    if s == 'y' or s == 's' or s == '2':
-        return 1
-    else:
-        return 0
-
-
-def del_tmp_and_reg_files():
-    """def del_tmp_and_reg_files(OPTION_TMP_FILES, OPTION_TMP_RECORDS)
-    Descripció: Ignora o elimina els fitxers i registres temporals.
-    Entrada:    Cap.
-    Sortida:    Cap.
-    """
-    global OPTION_TMP_FILES
-    global OPTION_TMP_RECORDS
-
-    if OPTION_TMP_FILES == 1:  # Conserva arxius temporals
-        # Crea subdirectori i mou dins arxius temporals
-        if not os.path.exists(os.path.join(os.getcwd(), 'TmpFiles')):
-            os.makedirs(os.path.join(os.getcwd(), 'TmpFiles'))
-        os.rename(
-                  os.path.join(os.getcwd(), TMP_FILE_ANSWERS),
-                  os.path.join(os.getcwd(), 'TmpFiles', TMP_FILE_ANSWERS))
-    else:  # Elimina arxius temporals
-        os.remove(TMP_FILE_ANSWERS)
-
-    if OPTION_TMP_RECORDS == 1:  # Conserva els registres
-        # Crea subdirectori i mou dins registres
-        if not os.path.exists(os.path.join(os.getcwd(), 'RcdFiles')):
-            os.makedirs(os.path.join(os.getcwd(), 'RcdFiles'))
-        os.rename(
-                  os.path.join(os.getcwd(), RECORD_FILE_ERRORS),
-                  os.path.join(os.getcwd(), 'RcdFiles', RECORD_FILE_ERRORS))
-        os.rename(
-                  os.path.join(os.getcwd(), RECORD_FILE_ANSWERS),
-                  os.path.join(os.getcwd(), 'RcdFiles', RECORD_FILE_ANSWERS))
-    else:  # Elimina registres
-        os.remove(RECORD_FILE_ERRORS)
-        os.remove(RECORD_FILE_ANSWERS)
-
-    if OPTION_REPORTS == 1:  # Genera informes
-        if not os.path.exists(os.path.join(os.getcwd(), 'Informes')):
-            os.makedirs(os.path.join(os.getcwd(), 'Informes'))
-        os.rename(
-                  os.path.join(os.getcwd(), REPORT_FILE_CENTRE),
-                  os.path.join(os.getcwd(), 'Informes', REPORT_FILE_CENTRE))
-        os.rename(
-                  os.path.join(os.getcwd(), REPORT_FILE_ADM),
-                  os.path.join(
-                               os.getcwd(),
-                               'Informes',
-                               REPORT_FILE_ADM))
-        os.rename(
-                  os.path.join(os.getcwd(), REPORT_FILE_INF),
-                  os.path.join(
-                               os.getcwd(),
-                               'Informes',
-                               REPORT_FILE_INF))
 
 
 def offer_navigation_menu_for_troublesome_source_files(source_file):
