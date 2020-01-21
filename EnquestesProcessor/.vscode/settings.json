@@ -4,5 +4,7 @@
         "**/.project": true,
         "**/.settings": true,
         "**/.factorypath": true
-    }
+    },
+    "python.pythonPath": "C:\\Users\\fher\\AppData\\Local\\Programs\\Python\\Python37-32\\python.exe",
+    "python.linting.enabled": true
 }

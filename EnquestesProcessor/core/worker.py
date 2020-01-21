@@ -6,19 +6,19 @@ from dateutil import parser
 #Docstring documentation: https://www.python.org/dev/peps/pep-0257/
 class Worker:
     #Contains the main code for parsing and processing the files, witout terminal interaction, just exceptions for errors.
-
-    RECORD_FILE_ERRORS = 'errades_rec.csv'
-    RECORD_FILE_ANSWERS = 'resultats_rec.csv'
-    REPORT_FILE_ADM = 'informe_Dept_Admin.csv'
-    REPORT_FILE_INF = 'informe_Dept_Inform.csv'
-    REPORT_FILE_CENTRE = 'informe_Centre.csv'
-    RESULT_FILE_ANSWERS = 'resultats_respostes.csv'
-    RESULT_FILE_ERRORS = 'resultats_errades.csv'
-    RESULT_FILE_STATISTICS = 'estadística_respostes.csv'
-    RESULT_FILE_STUDENTS_WITH_AVALUATED_MP = 'resultats_alumnes-respostes.csv'
-    SOURCE_FILE_STUDENTS_WITH_MP = 'alumnes-mp.csv'
-    SOURCE_FILE_STUDENT_ANSWERS = 'respostes.csv'
-    TMP_FILE_ANSWERS = 'resultats_tmp.csv'
+    
+    REPORT_FILE_ADM = 'output/informe_Dept_Admin.csv'
+    REPORT_FILE_INF = 'output/informe_Dept_Inform.csv'
+    REPORT_FILE_CENTRE = 'output/informe_Centre.csv'
+    RESULT_FILE_ANSWERS = 'output/resultats_respostes.csv'
+    RESULT_FILE_ERRORS = 'output/resultats_errades.csv'
+    RESULT_FILE_STATISTICS = 'output/estadística_respostes.csv'
+    RESULT_FILE_STUDENTS_WITH_AVALUATED_MP = 'output/resultats_alumnes-respostes.csv'    
+    TMP_FILE_ANSWERS = 'tmp/resultats_tmp.csv'
+    RECORD_FILE_ERRORS = 'tmp/errades_rec.csv'
+    RECORD_FILE_ANSWERS = 'tmp/resultats_rec.csv'
+    SOURCE_FILE_STUDENTS_WITH_MP = 'input/alumnes-mp.csv'
+    SOURCE_FILE_STUDENT_ANSWERS = 'input/respostes.csv'
     THRESHOLD_MERGE_GROUP_MP_ANSWERS = 4
 
     OPTION_TMP_FILES = 0
@@ -39,12 +39,7 @@ class Worker:
     OPTION_REPORTS = 1
     #   0 = no
     #   1 = sí
-    #   2 = consulta a usuari
-    
-    LOG_LEVEL = 2
-    #   0 = no log
-    #   1 = simple
-    #   2 = detailed  
+    #   2 = consulta a usuari    
 
     def filter_invalid_responses(self):
         """
@@ -480,7 +475,7 @@ class Worker:
             departament = self.get_departament(cicle)
             objectes_dict = collections.OrderedDict(survey_avg_results_dict[cicle].items())
 
-            for objecte in sorted(objectes_dict.items()):
+            for objecte, item in sorted(objectes_dict.items()):
                 items_dict = collections.OrderedDict(objectes_dict[objecte].items())
                 items_list = self.generate_items_points_and_responses_list(**items_dict)
                 statistics_writer.writerow([departament, cicle, objecte] + items_list)
@@ -577,7 +572,7 @@ class Worker:
         Sortida:    String amb el nom del departament.
         """
         items_list = []
-        for k in sorted(items_dict.items()):
+        for k, v in sorted(items_dict.items()):
             items_list.append(format(round(items_dict[k]['AVERAGE POINTS'], 2), '.2f').replace('.', ','))
 
         while (len(items_list) < 6):
@@ -618,7 +613,7 @@ class Worker:
                 grup_2n = grup
                 objectes_dict = dict(survey_avg_results_dict[grup_2n].items())
 
-                for objecte in objectes_dict.items():
+                for objecte, item in objectes_dict.items():
                     if ('mp' in objecte.lower() and objectes_dict[objecte]['item1']['TOTAL RESPONSES'] <= self.THRESHOLD_MERGE_GROUP_MP_ANSWERS):
                         
                         try:
@@ -655,7 +650,7 @@ class Worker:
         """
         depts_dict = {'ADMINISTRACIÓ': self.REPORT_FILE_ADM, 'INFORMÀTICA': self.REPORT_FILE_INF}
 
-        for dept in depts_dict.items():
+        for dept, file in depts_dict.items():
             report_dept = open(depts_dict[dept], 'w', encoding='utf-8', newline='')
             report_dept_writer = csv.writer(report_dept)
             
@@ -776,66 +771,26 @@ class Worker:
         Entrada:    Cap.
         Sortida:    Cap.
         """
-        os.remove(self.RESULT_FILE_ERRORS)
-        os.remove(self.RESULT_FILE_ANSWERS)
-        os.remove(self.RESULT_FILE_STATISTICS)
-        os.remove(self.RESULT_FILE_STUDENTS_WITH_AVALUATED_MP)
-        os.remove(os.path.join(os.getcwd(), 'TmpFiles', self.TMP_FILE_ANSWERS))
-        os.remove(os.path.join(os.getcwd(), 'TmpFiles', self.TMP_FILE_ANSWERS))
-        os.remove(os.path.join(os.getcwd(), 'RcdFiles', self.RECORD_FILE_ERRORS))
-        os.remove(os.path.join(os.getcwd(), 'RcdFiles', self.RECORD_FILE_ANSWERS))
-        os.remove(os.path.join(os.getcwd(), 'Informes', self.REPORT_FILE_CENTRE))
-        os.remove(os.path.join(os.getcwd(), 'Informes', self.REPORT_FILE_ADM))
-        os.remove(os.path.join(os.getcwd(), 'Informes', self.REPORT_FILE_INF))       
+        files = [
+                    self.REPORT_FILE_ADM, self.REPORT_FILE_INF, self.REPORT_FILE_CENTRE, self.RESULT_FILE_ANSWERS, self.RESULT_FILE_ERRORS, self.RESULT_FILE_STATISTICS, 
+                    self.RESULT_FILE_STUDENTS_WITH_AVALUATED_MP, self.TMP_FILE_ANSWERS, self.RECORD_FILE_ERRORS, self.RECORD_FILE_ANSWERS
+                ]
 
-    def del_tmp_and_reg_files(self):
+        for f in files:
+            if os.path.exists(f):                
+                os.remove(f)                   
+
+    def clean_temp_files(self):
         """
         Descripció: Ignora o elimina els fitxers i registres temporals.
         Entrada:    Cap.
         Sortida:    Cap.
         """        
 
-        if self.OPTION_TMP_FILES == 1:  # Conserva arxius temporals
-            # Crea subdirectori i mou dins arxius temporals
-            if not os.path.exists(os.path.join(os.getcwd(), 'TmpFiles')):
-                os.makedirs(os.path.join(os.getcwd(), 'TmpFiles'))
-            
-            os.rename(os.path.join(os.getcwd(), self.TMP_FILE_ANSWERS), os.path.join(os.getcwd(), 'TmpFiles', self.TMP_FILE_ANSWERS))
-        else:  # Elimina arxius temporals
-            os.remove(self.TMP_FILE_ANSWERS)
+        if self.OPTION_TMP_FILES == 0:  # Elimina arxius temporals
+            if os.path.exists(self.TMP_FILE_ANSWERS):
+                os.remove(self.TMP_FILE_ANSWERS)            
 
-        if self.OPTION_TMP_RECORDS == 1:  # Conserva els registres
-            # Crea subdirectori i mou dins registres
-            if not os.path.exists(os.path.join(os.getcwd(), 'RcdFiles')):
-                os.makedirs(os.path.join(os.getcwd(), 'RcdFiles'))
-
-            os.rename(
-                os.path.join(os.getcwd(), self.RECORD_FILE_ERRORS),
-                os.path.join(os.getcwd(), 'RcdFiles', self.RECORD_FILE_ERRORS)
-            )
-                    
-            os.rename(
-                os.path.join(os.getcwd(), self.RECORD_FILE_ANSWERS),
-                os.path.join(os.getcwd(), 'RcdFiles', self.RECORD_FILE_ANSWERS)
-            )
-        else:  # Elimina registres
-            os.remove(self.RECORD_FILE_ERRORS)
-            os.remove(self.RECORD_FILE_ANSWERS)
-
-        if self.OPTION_REPORTS == 1:  # Genera informes
-            if not os.path.exists(os.path.join(os.getcwd(), 'Informes')):
-                os.makedirs(os.path.join(os.getcwd(), 'Informes'))
-            os.rename(
-                os.path.join(os.getcwd(), self.REPORT_FILE_CENTRE),
-                os.path.join(os.getcwd(), 'Informes', self.REPORT_FILE_CENTRE)
-            )
-
-            os.rename(
-                os.path.join(os.getcwd(), self.REPORT_FILE_ADM),
-                os.path.join(os.getcwd(),'Informes', self.REPORT_FILE_ADM)
-            )
-
-            os.rename(
-                os.path.join(os.getcwd(), self.REPORT_FILE_INF),
-                os.path.join(os.getcwd(), 'Informes', self.REPORT_FILE_INF)
-            )
+        if self.OPTION_TMP_RECORDS == 0:  # Elimina els registres
+            if os.path.exists(self.RECORD_FILE_ERRORS):
+                os.remove(self.RECORD_FILE_ERRORS)                      
