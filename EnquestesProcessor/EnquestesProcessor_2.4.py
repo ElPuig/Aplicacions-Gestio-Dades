@@ -1,7 +1,7 @@
 #!/usr/bin/python3.6
 # -*- coding: UTF-8 -*-
 
-"""EnquestesProcessor_2.3:
+"""EnquestesProcessor_2.4:
 Fitxers d'entrada:
     - alumnes-mp.csv: llista dels alumnes matriculats a cada CF,
                       amb el seu nom complet, l'adreça Xeill, el cicle i curs,
@@ -25,10 +25,10 @@ Fitxers de sortida:
     - temporals (opcionalment eliminables):
         * resultats_tmp.csv: conté les respostes vàlides amb la identificació
                             de l'estudiant
-Novetats respecte a la versió 2.2:
-    - modificacions per incorporar MP impartits a un mateix grup per més d'un
-      professor, i que a la nova versió del formulari són avaluats separadament
-      per l'alumnat
+Novetats respecte a la versió 2.3:
+    - al llarg del procés les dades dels estudiants són reemplaçades per un
+      identificador únic diferent en cada execució per garantitzar l'anonimat
+      de les respostes al llarg de tot el procés
 """
 
 import csv
@@ -36,6 +36,7 @@ import collections
 from dateutil import parser
 import errno
 import os
+import uuid
 
 RECORD_FILE_ERRORS = 'errades_rec.csv'
 RECORD_FILE_ANSWERS = 'resultats_rec.csv'
@@ -48,12 +49,13 @@ RESULT_FILE_STATISTICS = 'estadística_respostes.csv'
 RESULT_FILE_STUDENTS_WITH_AVALUATED_MP = 'resultats_alumnes-respostes.csv'
 SOURCE_FILE_STUDENTS_WITH_MP = 'alumnes-mp.csv'
 SOURCE_FILE_STUDENT_ANSWERS = 'respostes.csv'
+TMP_ANONYMIZED_STUDENT_ANSWERS = 'respostes_anonimitzades.csv'
 TMP_FILE_ANSWERS = 'resultats_tmp.csv'
 # tmp -> 0 = elimina
 #        1 = conserva
 #        2 = consulta a usuari
-OPTION_TMP_FILES = 0
-OPTION_TMP_RECORDS = 0
+OPTION_TMP_FILES = 1
+OPTION_TMP_RECORDS = 1
 # duplicates -> 0 = conserva primera
 #               1 = conserva nova
 #               2 = consulta a usuari
@@ -65,12 +67,80 @@ OPTION_REPORTS = 1
 THRESHOLD_MERGE_GROUP_MP_ANSWERS = 4
 
 
-def filter_invalid_responses():
+def replace_student_email_with_random_id(student_email, student_name, email_to_id_dict, id_to_email_and_name_dict):
+    """def replace_student_email_with_random_id(student_email, student_name,
+                                                email_to_id_dict, id_to_email_and_name_dict)
+    Descripció: Reemplaça l'email de l'estudiant amb un ID aleatori únic, i actualitza el diccionari amb
+                l'email dels estudiants com a clau i la seva respectiva id com a valor, i el diccionari
+                amb les id dels estudiants com a clau i una tupla l'email i nom respectius com com a valor.
+    Entrada:    Email, nom, diccionari amb l'email dels estudiants com a clau i la seva respectiva id
+                com a valor, diccionari amb les id dels estudiants com a clau i una tupla l'email i nom
+                respectius com com a valor.
+    Sortida:    Diccionari amb l'email dels estudiants com a clau i la seva respectiva id
+                com a valor, i diccionari amb les id dels estudiants com a clau i una tupla l'email i nom
+                respectius com com a valor, tots dos actualitzats amb les dades de l'estudiant passat com
+                a paràmetre.
+    """
+    student_id = str(uuid.uuid4())
+    email_to_id_dict[student_email] = student_id
+    id_to_email_and_name_dict[student_id] = [student_email, student_name]
+
+    return email_to_id_dict, id_to_email_and_name_dict
+
+
+def anonymize_answers():
+    """anonymize_answers()
+    Descripció: Reemplaça l'email de l'estudiant amb un ID aleatori únic
+    Entrada:    Cap.
+    Sortida:    Diccionari id_to_email_and_name_dict amb l'identificador de cada
+                estudiant com a clau, i el seu email i nom com a valors.
+    """
+    email_to_id_dict = {}
+    id_to_email_and_name_dict = {}
+
+    with open(SOURCE_FILE_STUDENTS_WITH_MP, 'r', encoding='utf-8') as alumnes:
+        alumnes_reader = csv.reader(alumnes)
+        next(alumnes, None)
+
+        for alumnes_row in alumnes_reader:
+            student_name = alumnes_row[0]
+            student_email = alumnes_row[1]
+            email_to_id_dict, id_to_email_and_name_dict = replace_student_email_with_random_id(
+                                                    student_email, student_name,
+                                                    email_to_id_dict, id_to_email_and_name_dict)
+
+    with open(TMP_ANONYMIZED_STUDENT_ANSWERS, 'w', encoding='utf-8') as anonymized_respostes:
+        anonymized_respostes_writer = csv.writer(anonymized_respostes)
+
+        with open(SOURCE_FILE_STUDENT_ANSWERS, 'r', encoding='utf-8') as respostes:
+            respostes_reader = csv.reader(respostes)
+            respostes_reader_header_list = list(next(respostes_reader))
+            anonymized_respostes_writer.writerow([respostes_reader_header_list[0]] +
+                                                    ['ID'] +
+                                                    respostes_reader_header_list[2:])
+
+            for respostes_row in respostes_reader:
+                r_email = respostes_row[1]
+                if (r_email not in email_to_id_dict):
+                    email_to_id_dict, id_to_email_and_name_dict = replace_student_email_with_random_id(
+                                                            r_email, 'desconegut',
+                                                            email_to_id_dict, id_to_email_and_name_dict)
+                student_id = email_to_id_dict.get(r_email)
+
+                anonymized_respostes_writer.writerow([respostes_row[0]] +
+                                                     [student_id] +
+                                                     respostes_row[2:])
+        
+    return id_to_email_and_name_dict
+
+
+def filter_invalid_responses(id_to_email_and_name_dict):
     """def filter_invalid_responses()
     Descripció: Filtra les respostes d'alumnes que no estiguin matriculats al
                 cicle o al MP avaluat, o que no pertanyin al curs de la tutoria
                 avaluada.
-    Entrada:    Cap.
+    Entrada:    Diccionari id_to_email_and_name_dict amb l'identificador de cada
+                estudiant com a clau, i el seu email i nom com a valors.
     Sortida:    Fitxer TMP_FILE_ANSWERS
                 Fitxer RECORD_FILE_ERRORS
     """
@@ -79,8 +149,8 @@ def filter_invalid_responses():
 
     # Encapçalats
     resultats_tmp_writer.writerow(
-                                ['ALUMNE', 'TIMESTAMP', 'EMAIL', 'CURS',
-                                 'OBJECTE', 'MP-ÍTEM1', 'MP-ÍTEM2', 'MP-ÍTEM3',
+                                ['TIMESTAMP', 'ID', 'CURS', 'OBJECTE',
+                                 'MP-ÍTEM1', 'MP-ÍTEM2', 'MP-ÍTEM3',
                                  'MP-ÍTEM4', 'MP-COMENTARI', 'TUTORIA1-ÍTEM1',
                                  'TUTORIA1-ÍTEM2', 'TUTORIA1-ÍTEM3',
                                  'TUTORIA1-COMENTARI', 'TUTORIA2-ÍTEM1',
@@ -95,7 +165,7 @@ def filter_invalid_responses():
 
     # Encapçalats
     errades_rec_writer.writerow(
-                              ['ALUMNE', 'CURS', 'MOTIU', 'TIMESTAMP', 'EMAIL',
+                              ['CURS', 'MOTIU', 'TIMESTAMP', 'ID',
                                'CICLE AVALUAT', 'OBJECTE AVALUAT', 'MP-ÍTEM1',
                                'MP-ÍTEM2', 'MP-ÍTEM3', 'MP-ÍTEM4',
                                'MP-COMENTARI', 'TUTORIA1-ÍTEM1',
@@ -107,12 +177,13 @@ def filter_invalid_responses():
                                'CENTRE-ÍTEM4', 'CENTRE-ÍTEM5', 'CENTRE-ÍTEM6',
                                'CENTRE-COMENTARI'])
 
-    with open(SOURCE_FILE_STUDENT_ANSWERS, 'r', encoding='utf-8') as respostes:
+    with open(TMP_ANONYMIZED_STUDENT_ANSWERS, 'r', encoding='utf-8') as respostes:
         respostes_reader = csv.reader(respostes)
         next(respostes, None)
 
         for respostes_row in respostes_reader:
-            r_email = respostes_row[1]
+            r_id = respostes_row[1]
+            r_email = id_to_email_and_name_dict.get(r_id)[0]
             r_curs = respostes_row[2]
             mp_index = extract_resposta_mp_index(*respostes_row[3:8])
             r_objecte = extract_mp_number(respostes_row[3:8][mp_index])
@@ -139,7 +210,6 @@ def filter_invalid_responses():
                         # (ex. 'B' a 'DAM1B')
                         if r_curs not in alumnes_row['GRUP']:
                             errades_rec_writer.writerow(
-                                                    [alumnes_row['ALUMNE']] +
                                                     [alumnes_row['GRUP']] +
                                                     ['CICLE INCORRECTE'] +
                                                     arranged_respostes_row)
@@ -150,7 +220,6 @@ def filter_invalid_responses():
                             if r_objecte in alumnes_row and\
                                alumnes_row[r_objecte].lower() != 'x':
                                 errades_rec_writer.writerow(
-                                                    [alumnes_row['ALUMNE']] +
                                                     [alumnes_row['GRUP']] +
                                                     ['MP INCORRECTE'] +
                                                     arranged_respostes_row)
@@ -161,7 +230,6 @@ def filter_invalid_responses():
                             elif r_objecte == 'Tutoria 1r curs' and\
                                     '1' not in alumnes_row['GRUP']:
                                 errades_rec_writer.writerow(
-                                                    [alumnes_row['ALUMNE']] +
                                                     [alumnes_row['GRUP']] +
                                                     ['TUTORIA INCORRECTA'] +
                                                     arranged_respostes_row)
@@ -170,7 +238,6 @@ def filter_invalid_responses():
                             elif r_objecte == 'Tutoria 2n curs' and\
                                     '2' not in alumnes_row['GRUP']:
                                 errades_rec_writer.writerow(
-                                                    [alumnes_row['ALUMNE']] +
                                                     [alumnes_row['GRUP']] +
                                                     ['TUTORIA INCORRECTA'] +
                                                     arranged_respostes_row)
@@ -178,14 +245,11 @@ def filter_invalid_responses():
 
                         # Enregistra respostes que passin els filtres
                         if error_found is False:
-                            resultats_tmp_writer.writerow(
-                                        [alumnes_row['ALUMNE']] +
-                                        arranged_respostes_row_with_groupclass)
+                            resultats_tmp_writer.writerow(arranged_respostes_row_with_groupclass)
 
                 # Enregistra com a errors els emails no trobats
                 if email_found is False:
                     errades_rec_writer.writerow(
-                                     ['desconegut'] +
                                      ['desconegut'] +
                                      ['EMAIL DESCONEGUT'] +
                                      arranged_respostes_row)
@@ -269,28 +333,28 @@ def filter_duplicated_answers():
         next(respostes_reader, None)
 
         for respostes_row in respostes_reader:
-            r_email_curs_objecte = respostes_row[2] +\
-                                respostes_row[3] +\
-                                respostes_row[4]
-            r_time = parser.parse(respostes_row[1])
+            r_student_id_curs_objecte = respostes_row[1] +\
+                                respostes_row[2] +\
+                                respostes_row[3]
+            r_time = parser.parse(respostes_row[0])
 
-            resposta_anterior = respostes_dict.get(r_email_curs_objecte)
+            resposta_anterior = respostes_dict.get(r_student_id_curs_objecte)
 
             if resposta_anterior is None:
-                respostes_dict[r_email_curs_objecte] = {}
-                respostes_dict[r_email_curs_objecte]['time'] = r_time
-                respostes_dict[r_email_curs_objecte]['resposta'] =\
+                respostes_dict[r_student_id_curs_objecte] = {}
+                respostes_dict[r_student_id_curs_objecte]['time'] = r_time
+                respostes_dict[r_student_id_curs_objecte]['resposta'] =\
                     respostes_row
 
             else:
                 if OPTION_DUPLICATED_ANSWERS == 0:  # Conserva primera resposta
                     if r_time > resposta_anterior['time']:
-                        errades_dict[r_email_curs_objecte] = {}
-                        errades_dict[r_email_curs_objecte]['time'] = r_time
-                        errades_dict[r_email_curs_objecte][
+                        errades_dict[r_student_id_curs_objecte] = {}
+                        errades_dict[r_student_id_curs_objecte]['time'] = r_time
+                        errades_dict[r_student_id_curs_objecte][
                                                            'resposta'
                                                            ] = respostes_row
-                        errades_dict[r_email_curs_objecte][
+                        errades_dict[r_student_id_curs_objecte][
                                                  'referenced_timestamp'
                                                  ] = resposta_anterior['time']
                     else:
@@ -309,11 +373,11 @@ def filter_duplicated_answers():
                                                  'referenced_timestamp'
                                                  ] = r_time
 
-                        respostes_dict[r_email_curs_objecte] = {}
-                        respostes_dict[r_email_curs_objecte][
+                        respostes_dict[r_student_id_curs_objecte] = {}
+                        respostes_dict[r_student_id_curs_objecte][
                                                              'time'
                                                              ] = r_time
-                        respostes_dict[r_email_curs_objecte][
+                        respostes_dict[r_student_id_curs_objecte][
                                                              'resposta'
                                                              ] = respostes_row
 
@@ -332,16 +396,16 @@ def filter_duplicated_answers():
                                                  'referenced_timestamp'
                                                  ] = r_time
 
-                        respostes_dict[r_email_curs_objecte] = {}
-                        respostes_dict[r_email_curs_objecte]['time'] = r_time
-                        respostes_dict[r_email_curs_objecte]['resposta'
+                        respostes_dict[r_student_id_curs_objecte] = {}
+                        respostes_dict[r_student_id_curs_objecte]['time'] = r_time
+                        respostes_dict[r_student_id_curs_objecte]['resposta'
                                                              ] = respostes_row
                     else:
-                        errades_dict[r_email_curs_objecte] = {}
-                        errades_dict[r_email_curs_objecte]['time'] = r_time
-                        errades_dict[r_email_curs_objecte]['resposta'
+                        errades_dict[r_student_id_curs_objecte] = {}
+                        errades_dict[r_student_id_curs_objecte]['time'] = r_time
+                        errades_dict[r_student_id_curs_objecte]['resposta'
                                                            ] = respostes_row
-                        errades_dict[r_email_curs_objecte][
+                        errades_dict[r_student_id_curs_objecte][
                                                  'referenced_timestamp'
                                                  ] = resposta_anterior['time']
 
@@ -349,8 +413,8 @@ def filter_duplicated_answers():
     resultats_writer = csv.writer(resultats)
     # Encapçalats
     resultats_writer.writerow(
-                             ['ALUMNE', 'TIMESTAMP', 'EMAIL', 'GRUP',
-                              'OBJECTE', 'MP-ÍTEM1', 'MP-ÍTEM2', 'MP-ÍTEM3',
+                             ['TIMESTAMP', 'ID', 'GRUP', 'OBJECTE',
+                              'MP-ÍTEM1', 'MP-ÍTEM2', 'MP-ÍTEM3',
                               'MP-ÍTEM4', 'MP-COMENTARI', 'TUTORIA1-ÍTEM1',
                               'TUTORIA1-ÍTEM2', 'TUTORIA1-ÍTEM3',
                               'TUTORIA1-COMENTARI', 'TUTORIA2-ÍTEM1',
@@ -385,10 +449,11 @@ def filter_duplicated_answers():
     errades_rec.close()
 
 
-def generate_list_of_answers():
+def generate_list_of_answers(id_to_email_and_name_dict):
     """def generate_list_of_answers()
     Descripció: Genera un fitxer amb els objectes avaluats per l'alumne.
-    Entrada:    Cap
+    Entrada:    Diccionari id_to_email_and_name_dict amb l'identificador de cada
+                estudiant com a clau, i el seu email i nom com a valors.
     Sortida:    Fitxer RESULT_FILE_STUDENTS_WITH_AVALUATED_MP
     """
     alumnes_mp_dict = {}
@@ -418,14 +483,13 @@ def generate_list_of_answers():
         respostes_reader = csv.DictReader(respostes)
 
         for respostes_row in respostes_reader:
-            nom_cognoms = respostes_row['ALUMNE']
-            email = respostes_row['EMAIL']
+            student_id = respostes_row['ID']
             curs = respostes_row['GRUP']
             objecte = extract_mp_number(respostes_row['OBJECTE'])
             teacher_name = extract_teacher_from_dual_teacher_mp(respostes_row['OBJECTE'])
 
             # Aconsegueix el llistat d'MP matriculats i respostes
-            avaluatsList = alumnes_mp_dict.get(email)['objecte']
+            avaluatsList = alumnes_mp_dict.get(id_to_email_and_name_dict.get(student_id)[0])['objecte']
 
             # Esbrina la posició a mpList segons l'objecte avaluat
             index_mapping_list = [
@@ -453,7 +517,7 @@ def generate_list_of_answers():
                             avaluatsList[n] += ' i ' + teacher_name
 
             # Actualitza el llistat al diccionari
-            alumnes_mp_dict[email]['objecte'] = avaluatsList
+            alumnes_mp_dict[id_to_email_and_name_dict.get(student_id)[0]]['objecte'] = avaluatsList
 
     # Escriu els resultats al fitxer de sortida
     result = open(RESULT_FILE_STUDENTS_WITH_AVALUATED_MP,
@@ -476,12 +540,13 @@ def generate_list_of_answers():
     result.close()
 
 
-def final_result_files_arranger():
+def final_result_files_arranger(id_to_email_and_name_dict):
     """def final_result_files_arranger
     Descripció: Elimina la informació sensible dels registres d'errades i
                 respostes, i prepara els resultats per
                 copiar i enganxar les dades al full de càlcul d'estadístiques.
-    Entrada:    Cap
+    Entrada:    Diccionari id_to_email_and_name_dict amb l'identificador de cada
+                estudiant com a clau, i el seu email i nom com a valors.
     Sortida:    Fitxer RESULT_FILE_ERRORS
                 Fitxer RESULT_FILE_ANSWERS
     """
@@ -499,10 +564,10 @@ def final_result_files_arranger():
 
             for errades_recRow in errades_rec_reader:
                 errades_writer.writerow(
-                                [errades_recRow['ALUMNE']] +
+                                [id_to_email_and_name_dict.get(errades_recRow['ID'])[1]] +
                                 [errades_recRow['CURS']] +
                                 [errades_recRow['MOTIU']] +
-                                [errades_recRow['EMAIL']] +
+                                [id_to_email_and_name_dict.get(errades_recRow['ID'])[0]] +
                                 [errades_recRow['CICLE AVALUAT']] +
                                 [errades_recRow['OBJECTE AVALUAT']] +
                                 [errades_recRow['TIMESTAMP']])
@@ -530,10 +595,10 @@ def final_result_files_arranger():
                                       'CENTRE-ÍTEM6', 'CENTRE-COMENTARI'])
 
             for resultats_rec_row in resultats_rec_reader:
-                timestamp = resultats_rec_row[1]
-                curs = resultats_rec_row[3]
-                objecte = resultats_rec_row[4]
-                avaluacions = resultats_rec_row[5:]
+                timestamp = resultats_rec_row[0]
+                curs = resultats_rec_row[2]
+                objecte = resultats_rec_row[3]
+                avaluacions = resultats_rec_row[4:]
 
                 resultats_writer.writerow(
                                           [timestamp] +
@@ -1013,7 +1078,7 @@ def setup_files():
     file_and_dir_remover(RESULT_FILE_STUDENTS_WITH_AVALUATED_MP)
 
     file_and_dir_remover(
-        os.path.join(os.getcwd(), 'TmpFiles', TMP_FILE_ANSWERS))
+        os.path.join(os.getcwd(), 'TmpFiles', TMP_ANONYMIZED_STUDENT_ANSWERS))
 
     file_and_dir_remover(
         os.path.join(os.getcwd(), 'TmpFiles', TMP_FILE_ANSWERS))
@@ -1025,16 +1090,10 @@ def setup_files():
         os.path.join(os.getcwd(), 'RcdFiles', RECORD_FILE_ANSWERS))
 
     file_and_dir_remover(
-        os.path.join(os.getcwd(), 'RcdFiles', RECORD_FILE_ANSWERS))
-
-    file_and_dir_remover(
         os.path.join(os.getcwd(), 'Informes', REPORT_FILE_CENTRE))
 
     file_and_dir_remover(
         os.path.join(os.getcwd(), 'Informes', REPORT_FILE_ADM))
-
-    file_and_dir_remover(
-        os.path.join(os.getcwd(), 'Informes', REPORT_FILE_INF))
 
     file_and_dir_remover(
         os.path.join(os.getcwd(), 'Informes', REPORT_FILE_INF))
@@ -1101,9 +1160,14 @@ def del_tmp_and_reg_files():
         if not os.path.exists(os.path.join(os.getcwd(), 'TmpFiles')):
             os.makedirs(os.path.join(os.getcwd(), 'TmpFiles'))
         os.rename(
+                  os.path.join(os.getcwd(), TMP_ANONYMIZED_STUDENT_ANSWERS),
+                  os.path.join(os.getcwd(), 'TmpFiles', TMP_ANONYMIZED_STUDENT_ANSWERS))
+        os.rename(
                   os.path.join(os.getcwd(), TMP_FILE_ANSWERS),
                   os.path.join(os.getcwd(), 'TmpFiles', TMP_FILE_ANSWERS))
+
     else:  # Elimina arxius temporals
+        file_and_dir_remover(TMP_ANONYMIZED_STUDENT_ANSWERS)
         file_and_dir_remover(TMP_FILE_ANSWERS)
         print('Arxius temporals eliminats.')
 
@@ -1190,16 +1254,17 @@ if __name__ == '__main__':
     setup_options()
     setup_files()
 
-    filter_invalid_responses()
+    id_to_email_and_name_dict = anonymize_answers()
+
+    filter_invalid_responses(id_to_email_and_name_dict)
 
     filter_duplicated_answers()
 
-    generate_list_of_answers()
-    final_result_files_arranger()
+    generate_list_of_answers(id_to_email_and_name_dict)
+    final_result_files_arranger(id_to_email_and_name_dict)
 
     merged_grup_mp_dict = generate_statistics()
 
     if OPTION_REPORTS == 1:
         generate_reports(**merged_grup_mp_dict)
     del_tmp_and_reg_files()
-    
