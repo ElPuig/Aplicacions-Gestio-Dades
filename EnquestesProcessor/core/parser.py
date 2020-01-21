@@ -914,62 +914,23 @@ class Parser:
                                             [statistics_row['NOMBRE RESPOSTES']] +
                                             [comments])
         report_centre.close()
-
-    def file_and_dir_remover(file_or_dir):
-        """def file_and_dir_remover(file_or_dir)
-        Descripció: Elimina fitxers i directoris sempre que existeixin i estiguin
-                    buits.
-        Entrada:    Nom del fitxer o directori.
-        Sortida:    Eliminació de fixter o directori.
-        """
-        try:
-            os.remove(file_or_dir)
-        except OSError as e:
-            """
-            Descarta els errors per fitxer o directori no existent, o directori no
-            buit.
-            """
-            if e.errno != errno.ENOENT and e.errno != errno.ENOTEMPTY:
-                raise
-
+    
     def setup_files():
         """
-        Descripció: Elimina fitxers de sortida anteriors que puguin existir al
-                    directori.
+        Descripció: Elimina fitxers de sortida anteriors que puguin existir al directori.
         Entrada:    Cap.
-        Sortida:    Elimina fixters anteriors.
+        Sortida:    Cap.
         """
-        file_and_dir_remover(RESULT_FILE_ERRORS)
-
-        file_and_dir_remover(RESULT_FILE_ANSWERS)
-
-        file_and_dir_remover(RESULT_FILE_STATISTICS)
-
-        file_and_dir_remover(RESULT_FILE_STUDENTS_WITH_AVALUATED_MP)
-
-        file_and_dir_remover(
-            os.path.join(os.getcwd(), 'TmpFiles', TMP_FILE_ANSWERS))
-
-        file_and_dir_remover(
-            os.path.join(os.getcwd(), 'TmpFiles', TMP_FILE_ANSWERS))
-
-        file_and_dir_remover(
-            os.path.join(os.getcwd(), 'RcdFiles', RECORD_FILE_ERRORS))
-
-        file_and_dir_remover(
-            os.path.join(os.getcwd(), 'RcdFiles', RECORD_FILE_ANSWERS))
-
-        file_and_dir_remover(
-            os.path.join(os.getcwd(), 'RcdFiles', RECORD_FILE_ANSWERS))
-
-        file_and_dir_remover(
-            os.path.join(os.getcwd(), 'Informes', REPORT_FILE_CENTRE))
-
-        file_and_dir_remover(
-            os.path.join(os.getcwd(), 'Informes', REPORT_FILE_ADM))
-
-        file_and_dir_remover(
-            os.path.join(os.getcwd(), 'Informes', REPORT_FILE_INF))
-
-        file_and_dir_remover(
-            os.path.join(os.getcwd(), 'Informes', REPORT_FILE_INF))
+        os.remove(RESULT_FILE_ERRORS)
+        os.remove(RESULT_FILE_ANSWERS)
+        os.remove(RESULT_FILE_STATISTICS)
+        os.remove(RESULT_FILE_STUDENTS_WITH_AVALUATED_MP)
+        os.remove(os.path.join(os.getcwd(), 'TmpFiles', TMP_FILE_ANSWERS))
+        os.remove(os.path.join(os.getcwd(), 'TmpFiles', TMP_FILE_ANSWERS))
+        os.remove(os.path.join(os.getcwd(), 'RcdFiles', RECORD_FILE_ERRORS))
+        os.remove(os.path.join(os.getcwd(), 'RcdFiles', RECORD_FILE_ANSWERS))
+        os.remove(os.path.join(os.getcwd(), 'RcdFiles', RECORD_FILE_ANSWERS))
+        os.remove(os.path.join(os.getcwd(), 'Informes', REPORT_FILE_CENTRE))
+        os.remove(os.path.join(os.getcwd(), 'Informes', REPORT_FILE_ADM))
+        os.remove(os.path.join(os.getcwd(), 'Informes', REPORT_FILE_INF))
+        os.remove(os.path.join(os.getcwd(), 'Informes', REPORT_FILE_INF))
