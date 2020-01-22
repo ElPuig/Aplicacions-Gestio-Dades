@@ -28,3 +28,5 @@ Temporary Items
 
 #CSV files with sensitive data
 *.csv
+*.pyc
+EnquestesProcessor/.vscode/settings.json

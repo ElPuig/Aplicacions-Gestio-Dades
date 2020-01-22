@@ -2,7 +2,7 @@ import os
 import csv
 import uuid
 import collections
-from dateutil import parser
+from dateutil import parser #pip3 install python-dateutil
 
 #Docstring documentation: https://www.python.org/dev/peps/pep-0257/
 class Worker:
@@ -15,10 +15,10 @@ class Worker:
     RESULT_FILE_ERRORS = 'output/resultats_errades.csv'
     RESULT_FILE_STATISTICS = 'output/estadística_respostes.csv'
     RESULT_FILE_STUDENTS_WITH_AVALUATED_MP = 'output/resultats_alumnes-respostes.csv'    
-    TMP_ANONYMIZED_STUDENT_ANSWERS = 'tmp/respostes_anonimitzades.csv'
-    TMP_FILE_ANSWERS = 'tmp/resultats_tmp.csv'
-    RECORD_FILE_ERRORS = 'tmp/errades_rec.csv'
-    RECORD_FILE_ANSWERS = 'tmp/resultats_rec.csv'
+    TMP_ANONYMIZED_STUDENT_ANSWERS = 'temp/respostes_anonimitzades.csv'
+    TMP_FILE_ANSWERS = 'temp/resultats_tmp.csv'
+    RECORD_FILE_ERRORS = 'temp/errades_rec.csv'
+    RECORD_FILE_ANSWERS = 'temp/resultats_rec.csv'
     SOURCE_FILE_STUDENTS_WITH_MP = 'input/alumnes-mp.csv'
     SOURCE_FILE_STUDENT_ANSWERS = 'input/respostes.csv'
     THRESHOLD_MERGE_GROUP_MP_ANSWERS = 4
