@@ -1,5 +1,6 @@
 import os
 import csv
+import uuid
 import collections
 from dateutil import parser
 
@@ -14,6 +15,7 @@ class Worker:
     RESULT_FILE_ERRORS = 'output/resultats_errades.csv'
     RESULT_FILE_STATISTICS = 'output/estadística_respostes.csv'
     RESULT_FILE_STUDENTS_WITH_AVALUATED_MP = 'output/resultats_alumnes-respostes.csv'    
+    TMP_ANONYMIZED_STUDENT_ANSWERS = 'tmp/respostes_anonimitzades.csv'
     TMP_FILE_ANSWERS = 'tmp/resultats_tmp.csv'
     RECORD_FILE_ERRORS = 'tmp/errades_rec.csv'
     RECORD_FILE_ANSWERS = 'tmp/resultats_rec.csv'
@@ -21,12 +23,12 @@ class Worker:
     SOURCE_FILE_STUDENT_ANSWERS = 'input/respostes.csv'
     THRESHOLD_MERGE_GROUP_MP_ANSWERS = 4
 
-    OPTION_TMP_FILES = 0
+    OPTION_TMP_FILES = 1
     #   0 = elimina
     #   1 = conserva
     #   2 = consulta a usuari
 
-    OPTION_TMP_RECORDS = 0    
+    OPTION_TMP_RECORDS = 1    
     #   0 = elimina
     #   1 = conserva
     #   2 = consulta a usuari
@@ -41,12 +43,10 @@ class Worker:
     #   1 = sí
     #   2 = consulta a usuari    
 
-    def filter_invalid_responses(self):
+    def filter_invalid_responses(self, id_to_email_and_name_dict):
         """
-        Descripció: Filtra les respostes d'alumnes que no estiguin matriculats al
-                    cicle o al MP avaluat, o que no pertanyin al curs de la tutoria
-                    avaluada.
-        Entrada:    Cap.
+        Descripció: Filtra les respostes d'alumnes que no estiguin matriculats al cicle o al MP avaluat, o que no pertanyin al curs de la tutoria avaluada.
+        Entrada:    Diccionari id_to_email_and_name_dict amb l'identificador de cada estudiant com a clau, i el seu email i nom com a valors.
         Sortida:    Fitxer self.TMP_FILE_ANSWERS
                     Fitxer self.RECORD_FILE_ERRORS
         """
@@ -57,8 +57,8 @@ class Worker:
 
             # Encapçalats
             resultats_tmp_writer.writerow(
-                                        ['ALUMNE', 'TIMESTAMP', 'EMAIL', 'CURS',
-                                        'OBJECTE', 'MP-ÍTEM1', 'MP-ÍTEM2', 'MP-ÍTEM3',
+                                        ['TIMESTAMP', 'ID', 'CURS', 'OBJECTE', 
+                                        'MP-ÍTEM1', 'MP-ÍTEM2', 'MP-ÍTEM3',
                                         'MP-ÍTEM4', 'MP-COMENTARI', 'TUTORIA1-ÍTEM1',
                                         'TUTORIA1-ÍTEM2', 'TUTORIA1-ÍTEM3',
                                         'TUTORIA1-COMENTARI', 'TUTORIA2-ÍTEM1',
@@ -76,7 +76,7 @@ class Worker:
 
                 # Encapçalats
                 errades_rec_writer.writerow(
-                                        ['ALUMNE', 'CURS', 'MOTIU', 'TIMESTAMP', 'EMAIL',
+                                        ['CURS', 'MOTIU', 'TIMESTAMP', 'ID',
                                         'CICLE AVALUAT', 'OBJECTE AVALUAT', 'MP-ÍTEM1',
                                         'MP-ÍTEM2', 'MP-ÍTEM3', 'MP-ÍTEM4',
                                         'MP-COMENTARI', 'TUTORIA1-ÍTEM1',
@@ -88,12 +88,13 @@ class Worker:
                                         'CENTRE-ÍTEM4', 'CENTRE-ÍTEM5', 'CENTRE-ÍTEM6',
                                         'CENTRE-COMENTARI'])
 
-                with open(self.SOURCE_FILE_STUDENT_ANSWERS, 'r', encoding='utf-8') as respostes:
+                with open(self.TMP_ANONYMIZED_STUDENT_ANSWERS, 'r', encoding='utf-8') as respostes:
                     respostes_reader = csv.reader(respostes)
                     next(respostes, None)
 
                     for respostes_row in respostes_reader:
-                        r_email = respostes_row[1]
+                        r_id = respostes_row[1]
+                        r_email = id_to_email_and_name_dict.get(r_id)[0]
                         r_curs = respostes_row[2]
                         mp_index = self.extract_resposta_mp_index(*respostes_row[3:8])
                         r_objecte = self.extract_mp_number(respostes_row[3:8][mp_index])
@@ -117,7 +118,6 @@ class Worker:
                                     # (ex. 'B' a 'DAM1B')
                                     if r_curs not in alumnes_row['GRUP']:
                                         errades_rec_writer.writerow(
-                                                                [alumnes_row['ALUMNE']] +
                                                                 [alumnes_row['GRUP']] +
                                                                 ['CICLE INCORRECTE'] +
                                                                 arranged_respostes_row)
@@ -127,7 +127,6 @@ class Worker:
                                         # Comprova que l'alumne cursa l'MP avaluat
                                         if r_objecte in alumnes_row and alumnes_row[r_objecte].lower() != 'x':
                                             errades_rec_writer.writerow(
-                                                                [alumnes_row['ALUMNE']] +
                                                                 [alumnes_row['GRUP']] +
                                                                 ['MP INCORRECTE'] +
                                                                 arranged_respostes_row)
@@ -137,7 +136,6 @@ class Worker:
                                         # de la tutoria avaluada
                                         elif r_objecte == 'Tutoria 1r curs' and '1' not in alumnes_row['GRUP']:
                                             errades_rec_writer.writerow(
-                                                                [alumnes_row['ALUMNE']] +
                                                                 [alumnes_row['GRUP']] +
                                                                 ['TUTORIA INCORRECTA'] +
                                                                 arranged_respostes_row)
@@ -145,7 +143,6 @@ class Worker:
 
                                         elif r_objecte == 'Tutoria 2n curs' and '2' not in alumnes_row['GRUP']:
                                             errades_rec_writer.writerow(
-                                                                [alumnes_row['ALUMNE']] +
                                                                 [alumnes_row['GRUP']] +
                                                                 ['TUTORIA INCORRECTA'] +
                                                                 arranged_respostes_row)
@@ -153,12 +150,11 @@ class Worker:
 
                                     # Enregistra respostes que passin els filtres
                                     if error_found is False:
-                                        resultats_tmp_writer.writerow([alumnes_row['ALUMNE']] + arranged_respostes_row_with_groupclass)
+                                        resultats_tmp_writer.writerow(arranged_respostes_row_with_groupclass)
 
                             # Enregistra com a errors els emails no trobats
                             if email_found is False:
                                 errades_rec_writer.writerow(
-                                                ['desconegut'] +
                                                 ['desconegut'] +
                                                 ['EMAIL DESCONEGUT'] +
                                                 arranged_respostes_row)
@@ -215,25 +211,26 @@ class Worker:
             next(respostes_reader, None)
 
             for respostes_row in respostes_reader:
-                r_email_curs_objecte = respostes_row[2] +\
-                                    respostes_row[3] +\
-                                    respostes_row[4]
-                r_time = parser.parse(respostes_row[1])
+                r_student_id_curs_objecte = respostes_row[1] +\
+                                respostes_row[2] +\
+                                respostes_row[3]
+                r_time = parser.parse(respostes_row[0])
 
-                resposta_anterior = respostes_dict.get(r_email_curs_objecte)
+                resposta_anterior = respostes_dict.get(r_student_id_curs_objecte)
 
                 if resposta_anterior is None:
-                    respostes_dict[r_email_curs_objecte] = {}
-                    respostes_dict[r_email_curs_objecte]['time'] = r_time
-                    respostes_dict[r_email_curs_objecte]['resposta'] = respostes_row
+                    respostes_dict[r_student_id_curs_objecte] = {}
+                    respostes_dict[r_student_id_curs_objecte]['time'] = r_time
+                    respostes_dict[r_student_id_curs_objecte]['resposta'] =  respostes_row
 
                 else:
                     if self.OPTION_DUPLICATED_ANSWERS == 0:  # Conserva primera resposta
                         if r_time > resposta_anterior['time']:
-                            errades_dict[r_email_curs_objecte] = {}
-                            errades_dict[r_email_curs_objecte]['time'] = r_time
-                            errades_dict[r_email_curs_objecte]['resposta'] = respostes_row
-                            errades_dict[r_email_curs_objecte]['referenced_timestamp'] = resposta_anterior['time']
+                            errades_dict[r_student_id_curs_objecte] = {}
+                            errades_dict[r_student_id_curs_objecte]['time'] = r_time
+                            errades_dict[r_student_id_curs_objecte]['resposta'] = respostes_row
+                            errades_dict[r_student_id_curs_objecte]['referenced_timestamp'] = resposta_anterior['time']
+
                         else:
                             key_errades = str(resposta_anterior) + str(resposta_anterior['time'])
                             errades_dict[key_errades] = {}
@@ -241,9 +238,9 @@ class Worker:
                             errades_dict[key_errades]['resposta'] = resposta_anterior['resposta']
                             errades_dict[key_errades]['referenced_timestamp'] = r_time
 
-                            respostes_dict[r_email_curs_objecte] = {}
-                            respostes_dict[r_email_curs_objecte]['time'] = r_time
-                            respostes_dict[r_email_curs_objecte]['resposta'] = respostes_row
+                            respostes_dict[r_student_id_curs_objecte] = {}
+                            respostes_dict[r_student_id_curs_objecte]['time'] = r_time
+                            respostes_dict[r_student_id_curs_objecte]['resposta'] = respostes_row
 
                     else:  # Conserva resposta més recent
                         if r_time > resposta_anterior['time']:
@@ -253,22 +250,23 @@ class Worker:
                             errades_dict[key_errades]['resposta'] = resposta_anterior['resposta']
                             errades_dict[key_errades]['referenced_timestamp'] = r_time
 
-                            respostes_dict[r_email_curs_objecte] = {}
-                            respostes_dict[r_email_curs_objecte]['time'] = r_time
-                            respostes_dict[r_email_curs_objecte]['resposta'] = respostes_row
+                            respostes_dict[r_student_id_curs_objecte] = {}
+                            respostes_dict[r_student_id_curs_objecte]['time'] = r_time
+                            respostes_dict[r_student_id_curs_objecte]['resposta'] = respostes_row
+
                         else:
-                            errades_dict[r_email_curs_objecte] = {}
-                            errades_dict[r_email_curs_objecte]['time'] = r_time
-                            errades_dict[r_email_curs_objecte]['resposta'] = respostes_row
-                            errades_dict[r_email_curs_objecte]['referenced_timestamp'] = resposta_anterior['time']
+                            errades_dict[r_student_id_curs_objecte] = {}
+                            errades_dict[r_student_id_curs_objecte]['time'] = r_time
+                            errades_dict[r_student_id_curs_objecte]['resposta'] = respostes_row
+                            errades_dict[r_student_id_curs_objecte]['referenced_timestamp'] = resposta_anterior['time']
 
         resultats = open(self.RECORD_FILE_ANSWERS, 'w', encoding='utf-8', newline='')
         resultats_writer = csv.writer(resultats)
         
         # Encapçalats
         resultats_writer.writerow(
-                                ['ALUMNE', 'TIMESTAMP', 'EMAIL', 'GRUP',
-                                'OBJECTE', 'MP-ÍTEM1', 'MP-ÍTEM2', 'MP-ÍTEM3',
+                                ['TIMESTAMP', 'ID', 'GRUP', 'OBJECTE', 
+                                'MP-ÍTEM1', 'MP-ÍTEM2', 'MP-ÍTEM3',
                                 'MP-ÍTEM4', 'MP-COMENTARI', 'TUTORIA1-ÍTEM1',
                                 'TUTORIA1-ÍTEM2', 'TUTORIA1-ÍTEM3',
                                 'TUTORIA1-COMENTARI', 'TUTORIA2-ÍTEM1',
@@ -305,10 +303,10 @@ class Worker:
                                     v['resposta'][1:])
         errades_rec.close()
     
-    def generate_list_of_answers(self):
+    def generate_list_of_answers(self, id_to_email_and_name_dict):
         """
         Descripció: Genera un fitxer amb els objectes avaluats per l'alumne.
-        Entrada:    Cap
+        Entrada:    Diccionari id_to_email_and_name_dict amb l'identificador de cada estudiant com a clau, i el seu email i nom com a valors.
         Sortida:    Fitxer self.RESULT_FILE_STUDENTS_WITH_AVALUATED_MP
         """
         alumnes_mp_dict = {}
@@ -338,13 +336,12 @@ class Worker:
             respostes_reader = csv.DictReader(respostes)
 
             for respostes_row in respostes_reader:
-                nom_cognoms = respostes_row['ALUMNE']
-                email = respostes_row['EMAIL']
+                student_id = respostes_row['ID']
                 curs = respostes_row['GRUP']
                 objecte = self.extract_mp_number(respostes_row['OBJECTE'])
 
                 # Aconsegueix el llistat d'MP matriculats i respostes
-                avaluatsList = alumnes_mp_dict.get(email)['objecte']
+                avaluatsList = alumnes_mp_dict.get(id_to_email_and_name_dict.get(student_id)[0])['objecte']
 
                 # Esbrina la posició a mpList segons l'objecte avaluat
                 index_mapping_list = [
@@ -364,7 +361,7 @@ class Worker:
                         avaluatsList[n] = 'avaluat'
 
                 # Actualitza el llistat al diccionari
-                alumnes_mp_dict[email]['objecte'] = avaluatsList
+                alumnes_mp_dict[id_to_email_and_name_dict.get(student_id)[0]]['objecte'] = avaluatsList
 
         # Escriu els resultats al fitxer de sortida
         result = open(self.RESULT_FILE_STUDENTS_WITH_AVALUATED_MP,'w', encoding='utf-8', newline='')
@@ -385,10 +382,10 @@ class Worker:
 
         result.close()
 
-    def final_result_files_arranger(self):
+    def final_result_files_arranger(self, id_to_email_and_name_dict):
         """
         Descripció: Elimina la informació sensible dels registres d'errades i respostes, i prepara els resultats per copiar i enganxar les dades al full de càlcul d'estadístiques.
-        Entrada:    Cap
+        Entrada:    Diccionari id_to_email_and_name_dict amb l'identificador de cada estudiant com a clau, i el seu email i nom com a valors.
         Sortida:    Fitxer self.RESULT_FILE_ERRORS
                     Fitxer self.RESULT_FILE_ANSWERS
         """
@@ -403,10 +400,10 @@ class Worker:
 
                 for errades_recRow in errades_rec_reader:
                     errades_writer.writerow(
-                                        [errades_recRow['ALUMNE']] +
+                                        [id_to_email_and_name_dict.get(errades_recRow['ID'])[1]] +
                                         [errades_recRow['CURS']] +
                                         [errades_recRow['MOTIU']] +
-                                        [errades_recRow['EMAIL']] +
+                                        [id_to_email_and_name_dict.get(errades_recRow['ID'])[0]] +
                                         [errades_recRow['CICLE AVALUAT']] +
                                         [errades_recRow['OBJECTE AVALUAT']] +
                                         [errades_recRow['TIMESTAMP']]
@@ -428,10 +425,10 @@ class Worker:
                                         ])
 
                 for resultats_rec_row in resultats_rec_reader:
-                    timestamp = resultats_rec_row[1]
-                    curs = resultats_rec_row[3]
-                    objecte = resultats_rec_row[4]
-                    avaluacions = resultats_rec_row[5:]
+                    timestamp = resultats_rec_row[0]
+                    curs = resultats_rec_row[2]
+                    objecte = resultats_rec_row[3]
+                    avaluacions = resultats_rec_row[4:]
 
                     resultats_writer.writerow([timestamp] + [curs] + [objecte] + avaluacions)
 
@@ -772,8 +769,8 @@ class Worker:
         Sortida:    Cap.
         """
         files = [
-                    self.REPORT_FILE_ADM, self.REPORT_FILE_INF, self.REPORT_FILE_CENTRE, self.RESULT_FILE_ANSWERS, self.RESULT_FILE_ERRORS, self.RESULT_FILE_STATISTICS, 
-                    self.RESULT_FILE_STUDENTS_WITH_AVALUATED_MP, self.TMP_FILE_ANSWERS, self.RECORD_FILE_ERRORS, self.RECORD_FILE_ANSWERS
+                    self.REPORT_FILE_ADM, self.REPORT_FILE_CENTRE, self.RESULT_FILE_ANSWERS, self.RESULT_FILE_ERRORS, self.RESULT_FILE_STATISTICS, 
+                    self.RESULT_FILE_STUDENTS_WITH_AVALUATED_MP, self.TMP_ANONYMIZED_STUDENT_ANSWERS, self.RECORD_FILE_ERRORS
                 ]
 
         for f in files:
@@ -791,6 +788,69 @@ class Worker:
             if os.path.exists(self.TMP_FILE_ANSWERS):
                 os.remove(self.TMP_FILE_ANSWERS)            
 
+            if os.path.exists(self.TMP_ANONYMIZED_STUDENT_ANSWERS):
+                os.remove(self.TMP_ANONYMIZED_STUDENT_ANSWERS)            
+
         if self.OPTION_TMP_RECORDS == 0:  # Elimina els registres
             if os.path.exists(self.RECORD_FILE_ERRORS):
                 os.remove(self.RECORD_FILE_ERRORS)                      
+
+    def replace_student_email_with_random_id(self, student_email, student_name, email_to_id_dict, id_to_email_and_name_dict):
+        """
+        Descripció: Reemplaça l'email de l'estudiant amb un ID aleatori únic, i actualitza el diccionari amb
+                    l'email dels estudiants com a clau i la seva respectiva id com a valor, i el diccionari
+                    amb les id dels estudiants com a clau i una tupla l'email i nom respectius com com a valor.        
+        Entrada:    Email, nom, diccionari eemail_to_id_dict amb l'email dels estudiants com a clau i la seva id com a
+                    valor, diccionari id_to_email_and_name_dict amb l'identificador de cada estudiant com a clau, i el
+                    seu email i nom com a valors.
+        Sortida:    Diccionari email_to_id_dict amb l'email dels estudiants com a clau i la seva id com a valor, i
+                    diccionari id_to_email_and_name_dict amb l'identificador de cada estudiant com a clau i el seu email
+                    i nom com a valors, tots dos actualitzats amb les dades de l'estudiant passat com
+                    a paràmetre.
+        """
+        student_id = str(uuid.uuid4())
+        
+        if (student_id not in id_to_email_and_name_dict):
+            email_to_id_dict[student_email] = student_id
+            id_to_email_and_name_dict[student_id] = [student_email, student_name]
+
+            return email_to_id_dict, id_to_email_and_name_dict
+
+        else:
+            return self.replace_student_email_with_random_id(student_email, student_name, email_to_id_dict, id_to_email_and_name_dict)
+
+    def anonymize_answers(self):
+        """anonymize_answers()
+        Descripció: Reemplaça l'email de l'estudiant amb un ID aleatori únic
+        Entrada:    Cap.
+        Sortida:    Diccionari id_to_email_and_name_dict amb l'identificador de cada
+                    estudiant com a clau, i el seu email i nom com a valors.
+        """
+        email_to_id_dict = {}
+        id_to_email_and_name_dict = {}
+        with open(self.SOURCE_FILE_STUDENTS_WITH_MP, 'r', encoding='utf-8') as alumnes:
+            alumnes_reader = csv.reader(alumnes)
+            next(alumnes, None)
+            for alumnes_row in alumnes_reader:
+                student_name = alumnes_row[0]
+                student_email = alumnes_row[1]
+                email_to_id_dict, id_to_email_and_name_dict = self.replace_student_email_with_random_id(student_email, student_name,email_to_id_dict, id_to_email_and_name_dict)
+
+        with open(self.TMP_ANONYMIZED_STUDENT_ANSWERS, 'w', encoding='utf-8', newline='') as anonymized_respostes:
+            anonymized_respostes_writer = csv.writer(anonymized_respostes)
+
+            with open(self.SOURCE_FILE_STUDENT_ANSWERS, 'r', encoding='utf-8') as respostes:
+                respostes_reader = csv.reader(respostes)
+                respostes_reader_header_list = list(next(respostes_reader))
+                anonymized_respostes_writer.writerow([respostes_reader_header_list[0]] + ['ID'] + respostes_reader_header_list[2:])
+
+                for respostes_row in respostes_reader:
+                    r_email = respostes_row[1]
+
+                    if (r_email not in email_to_id_dict):
+                        email_to_id_dict, id_to_email_and_name_dict = self.replace_student_email_with_random_id(r_email, 'desconegut',email_to_id_dict, id_to_email_and_name_dict)
+                    
+                    student_id = email_to_id_dict.get(r_email)
+                    anonymized_respostes_writer.writerow([respostes_row[0]] + [student_id] + respostes_row[2:])
+            
+        return id_to_email_and_name_dict

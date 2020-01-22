@@ -54,6 +54,16 @@ Novetats respecte a la versió 2.1:
     - modificacions per afegir als informes de departament els comentaris dels
     estudiants de 2n curs que repeteixen alguna UF d'un MP de 1r curs i han
     estat fusionats amb el grup de 1r
+
+Novetats respecte a la versió 2.2:
+    - modificacions per incorporar MP impartits a un mateix grup per més d'un
+      professor, i que a la nova versió del formulari són avaluats separadament
+      per l'alumnat
+
+Novetats respecte a la versió 2.3:
+    - al llarg del procés les dades dels estudiants són reemplaçades per un
+      identificador únic diferent en cada execució per garantitzar l'anonimat
+      de les respostes al llarg de tot el procés
 """
 
 def setup_options():
@@ -197,8 +207,9 @@ if __name__ == '__main__':
         catch_exception(ex)       
 
     if LOG_LEVEL > 0: terminal.write("Filtrant respostes invàlides... ")
-    try:
-        worker.filter_invalid_responses()
+    try:        
+        id_to_email_and_name_dict = worker.anonymize_answers()
+        worker.filter_invalid_responses(id_to_email_and_name_dict)
         succeed()
     except Exception as ex:
        catch_exception(ex)
@@ -212,14 +223,15 @@ if __name__ == '__main__':
 
     if LOG_LEVEL > 0: terminal.write("Generant llistat de respostes... ")
     try:
-        worker.generate_list_of_answers()
+        worker.generate_list_of_answers(id_to_email_and_name_dict)
+        worker.final_result_files_arranger(id_to_email_and_name_dict)
         succeed()
     except Exception as ex:
         catch_exception(ex)
 
     if LOG_LEVEL > 0: terminal.write("Eliminant les dades sensibles... ")
     try:
-        worker.final_result_files_arranger()
+        worker.final_result_files_arranger(id_to_email_and_name_dict)
         succeed()
     except Exception as ex:
         catch_exception(ex)
