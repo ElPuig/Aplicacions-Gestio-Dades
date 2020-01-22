@@ -1,8 +1,12 @@
 import unittest
-
+from ..core import core
+ 
 class EnquestesProcessorTest(unittest.TestCase):
 
-    def test_upper(self):
+    def test_anonymize_answers(self):
+        #TODO: this test must be executed for different input files
+        worker = Worker()
+        id_to_email_and_name_dict = worker.anonymize_answers()
         self.assertEqual('foo'.upper(), 'FOO')
 
     def test_isupper(self):
