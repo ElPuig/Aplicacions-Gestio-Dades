@@ -7,20 +7,22 @@ from dateutil import parser #pip3 install python-dateutil
 #Docstring documentation: https://www.python.org/dev/peps/pep-0257/
 class Worker:
     #Contains the main code for parsing and processing the files, witout terminal interaction, just exceptions for errors.
-    
-    REPORT_FILE_ADM = 'output/informe_Dept_Admin.csv'
-    REPORT_FILE_INF = 'output/informe_Dept_Inform.csv'
-    REPORT_FILE_CENTRE = 'output/informe_Centre.csv'
-    RESULT_FILE_ANSWERS = 'output/resultats_respostes.csv'
-    RESULT_FILE_ERRORS = 'output/resultats_errades.csv'
-    RESULT_FILE_STATISTICS = 'output/estadística_respostes.csv'
-    RESULT_FILE_STUDENTS_WITH_AVALUATED_MP = 'output/resultats_alumnes-respostes.csv'    
-    TMP_ANONYMIZED_STUDENT_ANSWERS = 'temp/respostes_anonimitzades.csv'
-    TMP_FILE_ANSWERS = 'temp/resultats_tmp.csv'
-    RECORD_FILE_ERRORS = 'temp/errades_rec.csv'
-    RECORD_FILE_ANSWERS = 'temp/resultats_rec.csv'
-    SOURCE_FILE_STUDENTS_WITH_MP = 'input/alumnes-mp.csv'
-    SOURCE_FILE_STUDENT_ANSWERS = 'input/respostes.csv'
+    INPUT_FOLDER = 'input'
+    OUTPUT_FOLDER = 'output'
+    TEMP_FOLDER = 'temp'
+    REPORT_FILE_ADM = os.path.join(OUTPUT_FOLDER, 'informe_Dept_Admin.csv')
+    REPORT_FILE_INF = os.path.join(OUTPUT_FOLDER, 'informe_Dept_Inform.csv')
+    REPORT_FILE_CENTRE = os.path.join(OUTPUT_FOLDER, 'resultats_respostes.csv')
+    RESULT_FILE_ANSWERS = os.path.join(OUTPUT_FOLDER, 'informe_Dept_Admin.csv')
+    RESULT_FILE_ERRORS = os.path.join(OUTPUT_FOLDER, 'resultats_errades.csv')
+    RESULT_FILE_STATISTICS = os.path.join(OUTPUT_FOLDER, 'estadística_respostes.csv')
+    RESULT_FILE_STUDENTS_WITH_AVALUATED_MP = os.path.join(OUTPUT_FOLDER, 'resultats_alumnes.csv')
+    TMP_ANONYMIZED_STUDENT_ANSWERS = os.path.join(TEMP_FOLDER, 'respostes_anonimitzades.csv')
+    TMP_FILE_ANSWERS = os.path.join(TEMP_FOLDER, 'resultats_tmp.csv')
+    RECORD_FILE_ERRORS = os.path.join(TEMP_FOLDER, 'errades_rec.csv')
+    RECORD_FILE_ANSWERS = os.path.join(TEMP_FOLDER, 'resultats_rec.csv')
+    SOURCE_FILE_STUDENTS_WITH_MP = os.path.join(INPUT_FOLDER, 'alumnes-mp.csv')
+    SOURCE_FILE_STUDENT_ANSWERS = os.path.join(INPUT_FOLDER, 'respostes.csv')
     THRESHOLD_MERGE_GROUP_MP_ANSWERS = 4
 
     OPTION_TMP_FILES = 1
@@ -764,10 +766,20 @@ class Worker:
     
     def clean_files(self):
         """
-        Descripció: Elimina fitxers de sortida anteriors que puguin existir al directori.
+        Descripció: Crea els directoris de sortida i elimina fitxers de sortida anteriors que puguin existir als directoris.
         Entrada:    Cap.
         Sortida:    Cap.
         """
+
+        if not os.path.exists(self.INPUT_FOLDER):
+            os.makedirs(self.OUTPUT_FOLDER)
+
+        if not os.path.exists(self.OUTPUT_FOLDER):
+            os.makedirs(self.OUTPUT_FOLDER)
+
+        if not os.path.exists(self.TEMP_FOLDER):
+            os.makedirs(self.TEMP_FOLDER)
+
         files = [
                     self.REPORT_FILE_ADM, self.REPORT_FILE_CENTRE, self.RESULT_FILE_ANSWERS, self.RESULT_FILE_ERRORS, self.RESULT_FILE_STATISTICS, 
                     self.RESULT_FILE_STUDENTS_WITH_AVALUATED_MP, self.TMP_ANONYMIZED_STUDENT_ANSWERS, self.RECORD_FILE_ERRORS

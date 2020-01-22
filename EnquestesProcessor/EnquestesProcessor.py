@@ -191,6 +191,13 @@ if __name__ == '__main__':
     except Exception as ex:
         catch_exception(ex)
 
+    if LOG_LEVEL > 0: terminal.write("Netejant fitxers antics... ")
+    try:
+        worker.clean_files()
+        succeed()
+    except Exception as ex:
+        catch_exception(ex)       
+        
     if LOG_LEVEL > 0: terminal.write("Comprovant fitxers d'origen... ")
     try:
         check_source_file(worker.SOURCE_FILE_STUDENTS_WITH_MP)
@@ -198,13 +205,6 @@ if __name__ == '__main__':
         succeed()
     except Exception as ex:
         catch_exception(ex)
-
-    if LOG_LEVEL > 0: terminal.write("Netejant fitxers antics... ")
-    try:
-        worker.clean_files()
-        succeed()
-    except Exception as ex:
-        catch_exception(ex)       
 
     if LOG_LEVEL > 0: terminal.write("Filtrant respostes invàlides... ")
     try:        
