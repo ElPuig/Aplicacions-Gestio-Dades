@@ -1,6 +1,6 @@
 #!/usr/bin/python3.6
-import core.terminal
-import core.worker
+from core.terminal import *
+from core.worker import *
 import sys
 import os
 
@@ -108,12 +108,12 @@ def offer_navigation_menu_for_troublesome_source_files(source_file):
     """    
     terminal.tab()
     terminal.breakline()
-    terminal.writeln("Què voleu fer? Trieu una opció:", core.TerminalColors.UNDERLINE)
+    terminal.writeln("Què voleu fer? Trieu una opció:", TerminalColors.UNDERLINE)
 
     terminal.tab()
-    terminal.write("1. ", core.TerminalColors.CYAN)
+    terminal.write("1. ", TerminalColors.CYAN)
     terminal.writeln("Solucionar el problema i seguir.")
-    terminal.write("2. ", core.TerminalColors.CYAN)
+    terminal.write("2. ", TerminalColors.CYAN)
     terminal.writeln("Voleu sortir del programa")
     terminal.untab()
 
@@ -155,33 +155,33 @@ def catch_exception(ex):
 
 def succeed():
     if LOG_LEVEL > 0: 
-        terminal.writeln("OK", core.TerminalColors.DARKGREEN)
+        terminal.writeln("OK", TerminalColors.DARKGREEN)
 
 def error(details):
     msg = ""
     if LOG_LEVEL > 0: msg += "ERROR"
     if LOG_LEVEL > 1: msg += ": " + details
     
-    terminal.writeln(msg, core.TerminalColors.RED)
+    terminal.writeln(msg, TerminalColors.RED)
 
 if __name__ == '__main__':
     global terminal
     global worker
 
-    terminal = core.Terminal()  
+    terminal = Terminal()  
     terminal.breakline()    
-    terminal.write("Processador automàtic d'enquestes: ", core.TerminalColors.YELLOW)
+    terminal.write("Processador automàtic d'enquestes: ", TerminalColors.YELLOW)
     terminal.writeln("v3.0")
-    terminal.write("Copyright © 2019: ", core.TerminalColors.YELLOW)
+    terminal.write("Copyright © 2019: ", TerminalColors.YELLOW)
     terminal.writeln("INS Puig Castellar")
-    terminal.write("Under the GPL v3.0 license: ", core.TerminalColors.YELLOW)
+    terminal.write("Under the GPL v3.0 license: ", TerminalColors.YELLOW)
     terminal.writeln("https://github.com/ElPuig/Aplicacions-Gestio-Dades")
     
     terminal.breakline()        
     terminal.writeln("Iniciant el procés:")
     terminal.tab()    
 
-    worker = core.Worker()
+    worker = Worker()
     if LOG_LEVEL > 0: terminal.write("Carregant configuració... ")
     try:
         #TODO: si no es diu el contrari, el programa pregunta, en cas contrari, es pot passar un fitxer yaml i llegeix d'aqui en comptes de preguntar
