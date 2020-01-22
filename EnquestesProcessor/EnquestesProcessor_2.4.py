@@ -54,8 +54,8 @@ TMP_FILE_ANSWERS = 'resultats_tmp.csv'
 # tmp -> 0 = elimina
 #        1 = conserva
 #        2 = consulta a usuari
-OPTION_TMP_FILES = 1
-OPTION_TMP_RECORDS = 1
+OPTION_TMP_FILES = 0
+OPTION_TMP_RECORDS = 0
 # duplicates -> 0 = conserva primera
 #               1 = conserva nova
 #               2 = consulta a usuari
@@ -73,19 +73,24 @@ def replace_student_email_with_random_id(student_email, student_name, email_to_i
     Descripció: Reemplaça l'email de l'estudiant amb un ID aleatori únic, i actualitza el diccionari amb
                 l'email dels estudiants com a clau i la seva respectiva id com a valor, i el diccionari
                 amb les id dels estudiants com a clau i una tupla l'email i nom respectius com com a valor.
-    Entrada:    Email, nom, diccionari amb l'email dels estudiants com a clau i la seva respectiva id
-                com a valor, diccionari amb les id dels estudiants com a clau i una tupla l'email i nom
-                respectius com com a valor.
-    Sortida:    Diccionari amb l'email dels estudiants com a clau i la seva respectiva id
-                com a valor, i diccionari amb les id dels estudiants com a clau i una tupla l'email i nom
-                respectius com com a valor, tots dos actualitzats amb les dades de l'estudiant passat com
+    Entrada:    Email, nom, diccionari eemail_to_id_dict amb l'email dels estudiants com a clau i la seva id com a
+                valor, diccionari id_to_email_and_name_dict amb l'identificador de cada estudiant com a clau, i el
+                seu email i nom com a valors.
+    Sortida:    Diccionari email_to_id_dict amb l'email dels estudiants com a clau i la seva id com a valor, i
+                diccionari id_to_email_and_name_dict amb l'identificador de cada estudiant com a clau i el seu email
+                i nom com a valors, tots dos actualitzats amb les dades de l'estudiant passat com
                 a paràmetre.
     """
     student_id = str(uuid.uuid4())
-    email_to_id_dict[student_email] = student_id
-    id_to_email_and_name_dict[student_id] = [student_email, student_name]
 
-    return email_to_id_dict, id_to_email_and_name_dict
+    if (student_id not in id_to_email_and_name_dict):
+        email_to_id_dict[student_email] = student_id
+        id_to_email_and_name_dict[student_id] = [student_email, student_name]
+
+        return email_to_id_dict, id_to_email_and_name_dict
+
+    else:
+        replace_student_email_with_random_id(student_email, student_name, email_to_id_dict, id_to_email_and_name_dict)
 
 
 def anonymize_answers():
@@ -563,11 +568,13 @@ def final_result_files_arranger(id_to_email_and_name_dict):
                                       'TIMESTAMP']))
 
             for errades_recRow in errades_rec_reader:
+                student_surnames_and_name = id_to_email_and_name_dict.get(errades_recRow['ID'])[1]
+                student_email = id_to_email_and_name_dict.get(errades_recRow['ID'])[0]
                 errades_writer.writerow(
-                                [id_to_email_and_name_dict.get(errades_recRow['ID'])[1]] +
+                                [student_surnames_and_name] +
                                 [errades_recRow['CURS']] +
                                 [errades_recRow['MOTIU']] +
-                                [id_to_email_and_name_dict.get(errades_recRow['ID'])[0]] +
+                                [student_email] +
                                 [errades_recRow['CICLE AVALUAT']] +
                                 [errades_recRow['OBJECTE AVALUAT']] +
                                 [errades_recRow['TIMESTAMP']])
