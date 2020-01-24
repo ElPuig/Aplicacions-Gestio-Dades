@@ -19,8 +19,7 @@ from core.worker import *
 
 class EnquestesProcessorTest(unittest.TestCase):
 
-    def test_clean_files(self):
-        #TODO: this test must be executed for different input files        
+    def test_clean_files(self):        
         worker = Worker()
 
         #When done, the folders must exists but output and temp must be empty        
