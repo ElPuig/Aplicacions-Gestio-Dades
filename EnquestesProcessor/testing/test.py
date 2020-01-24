@@ -1,5 +1,7 @@
 import unittest
-import os, sys
+import os
+import sys
+import shutil
 
 """
 The current project follows this structure, which I found logic and comfortable:
@@ -17,11 +19,48 @@ from core.worker import *
 
 class EnquestesProcessorTest(unittest.TestCase):
 
-    def test_anonymize_answers(self):
-        #TODO: this test must be executed for different input files
+    def test_clean_files(self):
+        #TODO: this test must be executed for different input files        
         worker = Worker()
-        id_to_email_and_name_dict = worker.anonymize_answers()
-        self.assertEqual('foo'.upper(), 'FOO')
+
+        #When done, the folders must exists but output and temp must be empty        
+        if os.path.exists(worker.OUTPUT_FOLDER):
+            shutil.rmtree(worker.OUTPUT_FOLDER)
+
+        if os.path.exists(worker.TEMP_FOLDER):
+            shutil.rmtree(worker.TEMP_FOLDER)
+        
+        #It will be called twice: the firs one to check if the folders has been created
+        worker.clean_files()
+        self.assertEqual(os.path.exists(worker.OUTPUT_FOLDER), True)
+        self.assertEqual(os.path.exists(worker.TEMP_FOLDER), True)
+        
+        #It will be called twice: the second one to check if the folders are empty     
+        #os.mknod(worker.REPORT_FILE_ADM) #not portable, only works on UNIX
+        open(worker.REPORT_FILE_ADM, 'ab', 0).close()
+        open(worker.REPORT_FILE_INF, 'ab', 0).close()
+        open(worker.REPORT_FILE_CENTRE, 'ab', 0).close()
+        open(worker.RESULT_FILE_ANSWERS, 'ab', 0).close()
+        open(worker.RESULT_FILE_ERRORS, 'ab', 0).close()
+        open(worker.RESULT_FILE_STATISTICS, 'ab', 0).close()
+        open(worker.RESULT_FILE_STUDENTS_WITH_AVALUATED_MP, 'ab', 0).close()
+        open(worker.TMP_ANONYMIZED_STUDENT_ANSWERS, 'ab', 0).close()
+        open(worker.TMP_FILE_ANSWERS, 'ab', 0).close()
+        open(worker.RECORD_FILE_ERRORS, 'ab', 0).close()
+        open(worker.RECORD_FILE_ANSWERS, 'ab', 0).close()
+        open(worker.SOURCE_FILE_STUDENTS_WITH_MP, 'ab', 0).close()
+        open(worker.SOURCE_FILE_STUDENT_ANSWERS, 'ab', 0).close()
+
+        worker.clean_files()
+        path, dirs, files = next(os.walk(worker.OUTPUT_FOLDER))
+        self.assertEqual(len(files), 0)
+
+        path, dirs, files = next(os.walk(worker.TEMP_FOLDER))
+        self.assertEqual(len(files), 0)
+
+    def test_anonymize_answers(self):
+        #TODO: this test must be executed for different input files   
+        self.assertEqual(0, 0)     
 
     def test_isupper(self):
         self.assertTrue('FOO'.isupper())

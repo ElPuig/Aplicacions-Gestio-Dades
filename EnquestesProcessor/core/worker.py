@@ -772,7 +772,7 @@ class Worker:
         """
 
         if not os.path.exists(self.INPUT_FOLDER):
-            os.makedirs(self.OUTPUT_FOLDER)
+            os.makedirs(self.INPUT_FOLDER)
 
         if not os.path.exists(self.OUTPUT_FOLDER):
             os.makedirs(self.OUTPUT_FOLDER)
@@ -780,14 +780,8 @@ class Worker:
         if not os.path.exists(self.TEMP_FOLDER):
             os.makedirs(self.TEMP_FOLDER)
 
-        files = [
-                    self.REPORT_FILE_ADM, self.REPORT_FILE_CENTRE, self.RESULT_FILE_ANSWERS, self.RESULT_FILE_ERRORS, self.RESULT_FILE_STATISTICS, 
-                    self.RESULT_FILE_STUDENTS_WITH_AVALUATED_MP, self.TMP_ANONYMIZED_STUDENT_ANSWERS, self.RECORD_FILE_ERRORS
-                ]
-
-        for f in files:
-            if os.path.exists(f):                
-                os.remove(f)                   
+        self.__clean_folder(self.OUTPUT_FOLDER)
+        self.__clean_folder(self.TEMP_FOLDER)                       
 
     def clean_temp_files(self):
         """
@@ -805,7 +799,10 @@ class Worker:
 
         if self.OPTION_TMP_RECORDS == 0:  # Elimina els registres
             if os.path.exists(self.RECORD_FILE_ERRORS):
-                os.remove(self.RECORD_FILE_ERRORS)                      
+                os.remove(self.RECORD_FILE_ERRORS)
+
+            if os.path.exists(self.RECORD_FILE_ANSWERS):
+                os.remove(self.RECORD_FILE_ANSWERS)
 
     def replace_student_email_with_random_id(self, student_email, student_name, email_to_id_dict, id_to_email_and_name_dict):
         """
@@ -866,3 +863,10 @@ class Worker:
                     anonymized_respostes_writer.writerow([respostes_row[0]] + [student_id] + respostes_row[2:])
             
         return id_to_email_and_name_dict
+
+    def __clean_folder(self, folder):
+        if os.path.exists(folder):                
+            for f in os.listdir(folder):
+                fp = os.path.join(folder, f)
+                if os.path.isfile(fp):
+                    os.remove(fp)    
