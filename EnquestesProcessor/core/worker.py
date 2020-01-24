@@ -98,8 +98,8 @@ class Worker:
                         r_id = respostes_row[1]
                         r_email = id_to_email_and_name_dict.get(r_id)[0]
                         r_curs = respostes_row[2]
-                        mp_index = self.extract_resposta_mp_index(*respostes_row[3:8])
-                        r_objecte = self.extract_mp_number(respostes_row[3:8][mp_index])
+                        mp_index = self.__extract_resposta_mp_index(*respostes_row[3:8])
+                        r_objecte = self.__extract_mp_number(respostes_row[3:8][mp_index])
                         arranged_respostes_row = []
                         arranged_respostes_row.extend(respostes_row[:3] + [respostes_row[3:8][mp_index]] + respostes_row[8:])
                         email_found = False
@@ -112,7 +112,7 @@ class Worker:
 
                                 # Busca email de l'alumne que avalua
                                 if r_email == alumnes_row['CORREU']:
-                                    arranged_respostes_row_with_groupclass = self.retrieve_groupclass(alumnes_row['GRUP'], *arranged_respostes_row)
+                                    arranged_respostes_row_with_groupclass = self.__retrieve_groupclass(alumnes_row['GRUP'], *arranged_respostes_row)
                                     email_found = True
                                     
                                     # Comprova que l'alumne pertany al cicle que avalua
@@ -164,40 +164,8 @@ class Worker:
                 errades_rec.close()
             
         finally:
-            resultats_tmp.close()
-
-    def extract_resposta_mp_index(self, *mp_respostes_info):
-        """
-        Descripció: Troba l'índex amb informació sobre l'MP avaluat, el qual varia
-                    depenent del cicle de l'estudiant.
-        Entrada:    [foo, foo, "MP10 - Gestió logística i comercial", foo, foo].
-        Sortida:    "2".
-        """
-        return next(i for i, j in enumerate(mp_respostes_info) if j != "")
-
-    def extract_mp_number(self, full_mp_name):
-        """
-        Descripció: Extreu el nombre de l'MP i descarta el seu nom; en cas que
-                    l'objecte avaluat sigui el centre o la tutoria retorna
-                    l'objecte sense canvis.
-        Entrada:    "MP10 - Gestió logística i comercial".
-        Sortida:    "MP10".
-        """
-
-        return full_mp_name[:4] if full_mp_name[:2] == "MP" else full_mp_name        
-    
-    def retrieve_groupclass(self, groupclass, *arranged_respostes_row):
-        """
-        Descripció: Substitueix la informació del cicle pel curs i classe
-                    específic al llistat que conté la informació de cada resposta
-                    d'estudiant.
-        Entrada:    "ASIX2C", [foo, foo, "ASIX", foo, ... ].
-        Sortida:    [foo, foo, "ASIX2C", foo, ... ].
-        """
-        arranged_respostes_row_with_classgroup = []
-        arranged_respostes_row_with_classgroup = (list(arranged_respostes_row[:2]) + [groupclass] + list(arranged_respostes_row[3:]))
-        return arranged_respostes_row_with_classgroup
-    
+            resultats_tmp.close()   
+                 
     def filter_duplicated_answers(self):
         """
         Descripció: Filtra les respostes duplicades.
@@ -340,7 +308,7 @@ class Worker:
             for respostes_row in respostes_reader:
                 student_id = respostes_row['ID']
                 curs = respostes_row['GRUP']
-                objecte = self.extract_mp_number(respostes_row['OBJECTE'])
+                objecte = self.__extract_mp_number(respostes_row['OBJECTE'])
 
                 # Aconsegueix el llistat d'MP matriculats i respostes
                 avaluatsList = alumnes_mp_dict.get(id_to_email_and_name_dict.get(student_id)[0])['objecte']
@@ -433,26 +401,7 @@ class Worker:
                     avaluacions = resultats_rec_row[4:]
 
                     resultats_writer.writerow([timestamp] + [curs] + [objecte] + avaluacions)
-
-    def find_avaluated_object(self, text):
-        """
-        Descripció: Classifica els grups per departaments (Adminsitració i
-                    Informàtica)
-        Entrada:    String
-        Sortida:    String
-        """
-        grups_mapping_list = [
-            ('AF', 'Administració'), 
-            ('ASIX', 'Informàtica'), 
-            ('DAM', 'Informàtica'), 
-            ('GA', 'Administració'), 
-            ('SMX', 'Informàtica')
-        ]
-
-        for k, v in grups_mapping_list:
-            if k in text:
-                return v
-
+    
     def generate_statistics(self):
         """
         Descripció: Calcula la puntuació mitjana per grup, objecte i ítem, així com el nombre de respostes per cada parella grup-objecte.
@@ -467,171 +416,20 @@ class Worker:
         statistics_writer.writerow(['DEPARTAMENT', 'GRUP', 'OBJECTE', 'ÍTEM 1', 'ÍTEM 2', 'ÍTEM 3', 'ÍTEM 4', 'ÍTEM 5', 'ÍTEM 6', 'NOMBRE RESPOSTES'])
 
         survey_avg_results_dict = collections.OrderedDict()
-        survey_avg_results_dict = self.fill_survey_avg_results_dict(**survey_avg_results_dict)
-        (survey_avg_results_dict, merged_grup_mp_dict) = self.merge_repeaters_with_1st_course_class(**survey_avg_results_dict)
+        survey_avg_results_dict = self.__fill_survey_avg_results_dict(**survey_avg_results_dict)
+        (survey_avg_results_dict, merged_grup_mp_dict) = self.__merge_repeaters_with_1st_course_class(**survey_avg_results_dict)
 
         for cicle, objecte in sorted(survey_avg_results_dict.items()):
-            departament = self.get_departament(cicle)
+            departament = self.__get_departament(cicle)
             objectes_dict = collections.OrderedDict(survey_avg_results_dict[cicle].items())
 
             for objecte, item in sorted(objectes_dict.items()):
                 items_dict = collections.OrderedDict(objectes_dict[objecte].items())
-                items_list = self.generate_items_points_and_responses_list(**items_dict)
+                items_list = self.__generate_items_points_and_responses_list(**items_dict)
                 statistics_writer.writerow([departament, cicle, objecte] + items_list)
 
         statistics.close()
-        return merged_grup_mp_dict
-
-    def fill_survey_avg_results_dict(self, **survey_avg_results_dict):
-        """
-        Descripció: Emplena els cicles a survey_avg_results_dict.
-        Entrada:    Diccionari buit.
-        Sortida:    Diccionari complet amb el total de punts per ítem,
-                    nombre de respostes per ítem i mitjana per ítem de cada
-                    objecte de cada cicle.
-        """
-        survey_avg_results_dict = self.add_cicles_to_dict(**survey_avg_results_dict)
-        survey_avg_results_dict = self.add_objects_to_cicle(**survey_avg_results_dict)
-        survey_avg_results_dict = self.add_qualifications_to_objects(**survey_avg_results_dict)
-
-        return survey_avg_results_dict
-
-    def add_cicles_to_dict(self, **survey_avg_results_dict):
-        """
-        Descripció: Emplena els cicles a survey_avg_results_dict.
-        Entrada:    Diccionari buit.
-        Sortida:    Diccionari amb tots els cicles participants a l'enquesta.
-        """
-        with open(self.RESULT_FILE_ANSWERS, 'r', encoding='utf-8') as respostes:
-            respostes_reader = csv.DictReader(respostes)
-
-            for respostes_row in respostes_reader:
-                if respostes_row['GRUP'] not in survey_avg_results_dict.keys():
-                    survey_avg_results_dict[respostes_row['GRUP']] = {}
-
-        return survey_avg_results_dict
-
-    def add_objects_to_cicle(self, **survey_avg_results_dict):
-        """
-        Descripció: Emplena els objectes a survey_avg_results_dict.
-        Entrada:    Diccionari amb els cicles.
-        Sortida:    Diccionari amb els apartats d'MP, tutoria i centre
-                    afegits per cada cicle.
-        """
-        with open(self.RESULT_FILE_ANSWERS, 'r', encoding='utf-8') as respostes:
-            respostes_reader = csv.DictReader(respostes)
-
-            for respostes_row in respostes_reader:
-                if (respostes_row['OBJECTE'] not in survey_avg_results_dict[respostes_row['GRUP']].keys()):
-                    survey_avg_results_dict[respostes_row['GRUP']][respostes_row['OBJECTE']] = {}
-
-        return survey_avg_results_dict
-
-    def add_qualifications_to_objects(self, **survey_avg_results_dict):
-        """
-        Descripció: Emplena els resultats per ítem de cada objecte a survey_avg_results_dict.
-        Entrada:    Diccionari amb els cicles i objectes.
-        Sortida:    Diccionari actualitzat amb el total de punts per ítem, nombre de respostes per ítem i mitjana per ítem de cada objecte.
-        """
-        with open(self.RESULT_FILE_ANSWERS, 'r', encoding='utf-8') as respostes:
-            respostes_reader = csv.DictReader(respostes)
-
-            for respostes_row in respostes_reader:
-                item_number = 1
-
-                for column in respostes_row:
-                    if respostes_row[column].isdigit() is True:
-                        # Add to total points by item
-                        if ('item' + str(item_number)) not in survey_avg_results_dict[respostes_row['GRUP']][respostes_row['OBJECTE']].keys():
-                            survey_avg_results_dict[respostes_row['GRUP']][respostes_row['OBJECTE']]['item' + str(item_number)] = {}
-                            survey_avg_results_dict[respostes_row['GRUP']][respostes_row['OBJECTE']]['item' + str(item_number)]['TOTAL POINTS'] = 0
-
-                        survey_avg_results_dict[respostes_row['GRUP']][respostes_row['OBJECTE']]['item' + str(item_number)]['TOTAL POINTS'] += int(respostes_row[column])
-
-                        # Add to total responses by item
-                        if 'TOTAL RESPONSES' not in survey_avg_results_dict[respostes_row['GRUP']][respostes_row['OBJECTE']]['item' + str(item_number)].keys():
-                            survey_avg_results_dict[respostes_row['GRUP']][respostes_row['OBJECTE']]['item' + str(item_number)]['TOTAL RESPONSES'] = 1
-
-                        else:
-                            survey_avg_results_dict[respostes_row['GRUP']][respostes_row['OBJECTE']]['item' + str(item_number)]['TOTAL RESPONSES'] += 1
-
-                        # Recalculate average points per item
-                        survey_avg_results_dict[respostes_row['GRUP']][respostes_row['OBJECTE']]['item' + str(item_number)]['AVERAGE POINTS'] = (
-                                survey_avg_results_dict[respostes_row['GRUP']][respostes_row['OBJECTE']]['item' + str(item_number)]['TOTAL POINTS'] / 
-                                survey_avg_results_dict[respostes_row['GRUP']][respostes_row['OBJECTE']]['item' + str(item_number)]['TOTAL RESPONSES']
-                            )
-                        item_number += 1
-
-        return survey_avg_results_dict
-
-    def generate_items_points_and_responses_list(self, **items_dict):
-        """
-        Descripció: Retorna un llistat amb les puntuacions per ítem i el nombre de respostes.
-        Entrada:    Diccionari amb els ítems.
-        Sortida:    String amb el nom del departament.
-        """
-        items_list = []
-        for k, v in sorted(items_dict.items()):
-            items_list.append(format(round(items_dict[k]['AVERAGE POINTS'], 2), '.2f').replace('.', ','))
-
-        while (len(items_list) < 6):
-            items_list.append('')
-
-        items_list.append(items_dict[k]['TOTAL RESPONSES'])
-        return items_list
-
-    def get_departament(self, cicle):
-        """
-        Descripció: Retorna el departament corresponent al cicle.
-        Entrada:    String amb el nom del cicle.
-        Sortida:    String amb el nom del departament.
-        """
-        return 'ADMINISTRACIÓ' if 'AF' in cicle or 'GA' in cicle else 'INFORMÀTICA'
-
-    def merge_repeaters_with_1st_course_class(self, **survey_avg_results_dict):
-        """
-        Descripció: A cada cicle compara si alguna de les assignatures de 2n
-                    curs existeix també a 1r curs, i si té un nombre de respostes
-                    menor a la constant THRESHOLD_MERGE_GROUP_MP_ANSWERS, afegeix
-                    els resultats al grup de 1r i suprimeix el de 2n. L'objectiu
-                    és integrar les respostes dels estudiants de 2n curs, però que
-                    repeteixen alguna UF d'un MP de 1r curs, amb el grup de 1r.
-
-        Entrada:    Diccionari amb els resultats.
-        Sortida:    Diccionari survey_avg_results_dict amb els resultats de 1r i 2n
-                    curs especificats fusionats i els corresponents de 2n curs
-                    eliminats. Diccionari amb els grups i el llistat de MP
-                    fusionats.
-                    Diccionari merged_grup_mp_dict amb els grups de 2n curs i mp
-                    respectius que han estat fusionats amb el corresponent de 1r
-                    curs per tractar-se de respostes de repetidors.
-        """
-        merged_grup_mp_dict = {}
-        for grup, objecte in survey_avg_results_dict.items():
-            if '2' in grup:
-                grup_2n = grup
-                objectes_dict = dict(survey_avg_results_dict[grup_2n].items())
-
-                for objecte, item in objectes_dict.items():
-                    if ('mp' in objecte.lower() and objectes_dict[objecte]['item1']['TOTAL RESPONSES'] <= self.THRESHOLD_MERGE_GROUP_MP_ANSWERS):
-                        
-                        try:
-                            grup_1r = grup_2n.replace('2', '1')
-                            for i in range(1, 5):
-                                survey_avg_results_dict[grup_1r][objecte]['item' + str(i)]['TOTAL POINTS'] += objectes_dict[objecte]['item' + str(i)]['TOTAL RESPONSES']
-                                survey_avg_results_dict[grup_1r][objecte]['item' + str(i)]['TOTAL RESPONSES'] += objectes_dict[objecte]['item' + str(i)]['TOTAL RESPONSES']
-                                survey_avg_results_dict[grup_1r][objecte]['item' + str(i)]['AVERAGE POINTS'] = (survey_avg_results_dict[grup_1r][objecte]['item' + str(i)]['TOTAL POINTS'] / survey_avg_results_dict[grup_1r][objecte]['item' + str(i)]['TOTAL RESPONSES'])
-
-                            if grup_2n not in merged_grup_mp_dict.keys():
-                                merged_grup_mp_dict[grup_2n] = []
-
-                            merged_grup_mp_dict[grup_2n].append(objecte)
-                            survey_avg_results_dict[grup_2n].pop(objecte, None)
-
-                        except:
-                            pass
-
-        return survey_avg_results_dict, merged_grup_mp_dict
+        return merged_grup_mp_dict    
 
     def generate_reports(self, **merged_grup_mp_dict):
         """
@@ -751,7 +549,7 @@ class Worker:
                                             comments += resultats_row['CENTRE-COMENTARI'].replace('\n', ' ')
 
                             report_centre_writer.writerow(
-                                                            [self.get_departament(statistics_row['GRUP'])] +
+                                                            [self.__get_departament(statistics_row['GRUP'])] +
                                                             [statistics_row['GRUP']] +
                                                             [statistics_row['ÍTEM 1']] +
                                                             [statistics_row['ÍTEM 2']] +
@@ -803,8 +601,234 @@ class Worker:
 
             if os.path.exists(self.RECORD_FILE_ANSWERS):
                 os.remove(self.RECORD_FILE_ANSWERS)
+    
+    def anonymize_answers(self):
+        """anonymize_answers()
+        Descripció: Reemplaça l'email de l'estudiant amb un ID aleatori únic
+        Entrada:    Cap.
+        Sortida:    Diccionari id_to_email_and_name_dict amb l'identificador de cada
+                    estudiant com a clau, i el seu email i nom com a valors.
+        """
+        email_to_id_dict = {}
+        id_to_email_and_name_dict = {}
+        with open(self.SOURCE_FILE_STUDENTS_WITH_MP, 'r', encoding='utf-8') as alumnes:
+            alumnes_reader = csv.reader(alumnes)
+            next(alumnes, None)
+            for alumnes_row in alumnes_reader:
+                student_name = alumnes_row[0]
+                student_email = alumnes_row[1]
+                email_to_id_dict, id_to_email_and_name_dict = self.__replace_student_email_with_random_id(student_email, student_name,email_to_id_dict, id_to_email_and_name_dict)
 
-    def replace_student_email_with_random_id(self, student_email, student_name, email_to_id_dict, id_to_email_and_name_dict):
+        with open(self.TMP_ANONYMIZED_STUDENT_ANSWERS, 'w', encoding='utf-8', newline='') as anonymized_respostes:
+            anonymized_respostes_writer = csv.writer(anonymized_respostes)
+
+            with open(self.SOURCE_FILE_STUDENT_ANSWERS, 'r', encoding='utf-8') as respostes:
+                respostes_reader = csv.reader(respostes)
+                respostes_reader_header_list = list(next(respostes_reader))
+                anonymized_respostes_writer.writerow([respostes_reader_header_list[0]] + ['ID'] + respostes_reader_header_list[2:])
+
+                for respostes_row in respostes_reader:
+                    r_email = respostes_row[1]
+
+                    if (r_email not in email_to_id_dict):
+                        email_to_id_dict, id_to_email_and_name_dict = self.__replace_student_email_with_random_id(r_email, 'desconegut',email_to_id_dict, id_to_email_and_name_dict)
+                    
+                    student_id = email_to_id_dict.get(r_email)
+                    anonymized_respostes_writer.writerow([respostes_row[0]] + [student_id] + respostes_row[2:])
+            
+        return id_to_email_and_name_dict
+
+    def __clean_folder(self, folder):
+        if os.path.exists(folder):                
+            for f in os.listdir(folder):
+                fp = os.path.join(folder, f)
+                if os.path.isfile(fp):
+                    os.remove(fp)    
+
+    def __extract_resposta_mp_index(self, *mp_respostes_info):
+        """
+        Descripció: Troba l'índex amb informació sobre l'MP avaluat, el qual varia
+                    depenent del cicle de l'estudiant.
+        Entrada:    [foo, foo, "MP10 - Gestió logística i comercial", foo, foo].
+        Sortida:    "2".
+        """
+        return next(i for i, j in enumerate(mp_respostes_info) if j != "")
+
+    def __extract_mp_number(self, full_mp_name):
+        """
+        Descripció: Extreu el nombre de l'MP i descarta el seu nom; en cas que
+                    l'objecte avaluat sigui el centre o la tutoria retorna
+                    l'objecte sense canvis.
+        Entrada:    "MP10 - Gestió logística i comercial".
+        Sortida:    "MP10".
+        """
+
+        return full_mp_name[:4] if full_mp_name[:2] == "MP" else full_mp_name
+
+    def __retrieve_groupclass(self, groupclass, *arranged_respostes_row):
+        """
+        Descripció: Substitueix la informació del cicle pel curs i classe
+                    específic al llistat que conté la informació de cada resposta
+                    d'estudiant.
+        Entrada:    "ASIX2C", [foo, foo, "ASIX", foo, ... ].
+        Sortida:    [foo, foo, "ASIX2C", foo, ... ].
+        """
+        arranged_respostes_row_with_classgroup = []
+        arranged_respostes_row_with_classgroup = (list(arranged_respostes_row[:2]) + [groupclass] + list(arranged_respostes_row[3:]))
+        return arranged_respostes_row_with_classgroup
+
+    def __fill_survey_avg_results_dict(self, **survey_avg_results_dict):
+        """
+        Descripció: Emplena els cicles a survey_avg_results_dict.
+        Entrada:    Diccionari buit.
+        Sortida:    Diccionari complet amb el total de punts per ítem,
+                    nombre de respostes per ítem i mitjana per ítem de cada
+                    objecte de cada cicle.
+        """
+        survey_avg_results_dict = self.__add_cicles_to_dict(**survey_avg_results_dict)
+        survey_avg_results_dict = self.__add_objects_to_cicle(**survey_avg_results_dict)
+        survey_avg_results_dict = self.__add_qualifications_to_objects(**survey_avg_results_dict)
+
+        return survey_avg_results_dict
+
+    def __add_cicles_to_dict(self, **survey_avg_results_dict):
+        """
+        Descripció: Emplena els cicles a survey_avg_results_dict.
+        Entrada:    Diccionari buit.
+        Sortida:    Diccionari amb tots els cicles participants a l'enquesta.
+        """
+        with open(self.RESULT_FILE_ANSWERS, 'r', encoding='utf-8') as respostes:
+            respostes_reader = csv.DictReader(respostes)
+
+            for respostes_row in respostes_reader:
+                if respostes_row['GRUP'] not in survey_avg_results_dict.keys():
+                    survey_avg_results_dict[respostes_row['GRUP']] = {}
+
+        return survey_avg_results_dict
+
+    def __add_objects_to_cicle(self, **survey_avg_results_dict):
+        """
+        Descripció: Emplena els objectes a survey_avg_results_dict.
+        Entrada:    Diccionari amb els cicles.
+        Sortida:    Diccionari amb els apartats d'MP, tutoria i centre
+                    afegits per cada cicle.
+        """
+        with open(self.RESULT_FILE_ANSWERS, 'r', encoding='utf-8') as respostes:
+            respostes_reader = csv.DictReader(respostes)
+
+            for respostes_row in respostes_reader:
+                if (respostes_row['OBJECTE'] not in survey_avg_results_dict[respostes_row['GRUP']].keys()):
+                    survey_avg_results_dict[respostes_row['GRUP']][respostes_row['OBJECTE']] = {}
+
+        return survey_avg_results_dict
+
+    def __add_qualifications_to_objects(self, **survey_avg_results_dict):
+        """
+        Descripció: Emplena els resultats per ítem de cada objecte a survey_avg_results_dict.
+        Entrada:    Diccionari amb els cicles i objectes.
+        Sortida:    Diccionari actualitzat amb el total de punts per ítem, nombre de respostes per ítem i mitjana per ítem de cada objecte.
+        """
+        with open(self.RESULT_FILE_ANSWERS, 'r', encoding='utf-8') as respostes:
+            respostes_reader = csv.DictReader(respostes)
+
+            for respostes_row in respostes_reader:
+                item_number = 1
+
+                for column in respostes_row:
+                    if respostes_row[column].isdigit() is True:
+                        # Add to total points by item
+                        if ('item' + str(item_number)) not in survey_avg_results_dict[respostes_row['GRUP']][respostes_row['OBJECTE']].keys():
+                            survey_avg_results_dict[respostes_row['GRUP']][respostes_row['OBJECTE']]['item' + str(item_number)] = {}
+                            survey_avg_results_dict[respostes_row['GRUP']][respostes_row['OBJECTE']]['item' + str(item_number)]['TOTAL POINTS'] = 0
+
+                        survey_avg_results_dict[respostes_row['GRUP']][respostes_row['OBJECTE']]['item' + str(item_number)]['TOTAL POINTS'] += int(respostes_row[column])
+
+                        # Add to total responses by item
+                        if 'TOTAL RESPONSES' not in survey_avg_results_dict[respostes_row['GRUP']][respostes_row['OBJECTE']]['item' + str(item_number)].keys():
+                            survey_avg_results_dict[respostes_row['GRUP']][respostes_row['OBJECTE']]['item' + str(item_number)]['TOTAL RESPONSES'] = 1
+
+                        else:
+                            survey_avg_results_dict[respostes_row['GRUP']][respostes_row['OBJECTE']]['item' + str(item_number)]['TOTAL RESPONSES'] += 1
+
+                        # Recalculate average points per item
+                        survey_avg_results_dict[respostes_row['GRUP']][respostes_row['OBJECTE']]['item' + str(item_number)]['AVERAGE POINTS'] = (
+                                survey_avg_results_dict[respostes_row['GRUP']][respostes_row['OBJECTE']]['item' + str(item_number)]['TOTAL POINTS'] / 
+                                survey_avg_results_dict[respostes_row['GRUP']][respostes_row['OBJECTE']]['item' + str(item_number)]['TOTAL RESPONSES']
+                            )
+                        item_number += 1
+
+        return survey_avg_results_dict
+
+    def __generate_items_points_and_responses_list(self, **items_dict):
+        """
+        Descripció: Retorna un llistat amb les puntuacions per ítem i el nombre de respostes.
+        Entrada:    Diccionari amb els ítems.
+        Sortida:    String amb el nom del departament.
+        """
+        items_list = []
+        for k, v in sorted(items_dict.items()):
+            items_list.append(format(round(items_dict[k]['AVERAGE POINTS'], 2), '.2f').replace('.', ','))
+
+        while (len(items_list) < 6):
+            items_list.append('')
+
+        items_list.append(items_dict[k]['TOTAL RESPONSES'])
+        return items_list
+
+    def __get_departament(self, cicle):
+        """
+        Descripció: Retorna el departament corresponent al cicle.
+        Entrada:    String amb el nom del cicle.
+        Sortida:    String amb el nom del departament.
+        """
+        return 'ADMINISTRACIÓ' if 'AF' in cicle or 'GA' in cicle else 'INFORMÀTICA'
+
+    def __merge_repeaters_with_1st_course_class(self, **survey_avg_results_dict):
+        """
+        Descripció: A cada cicle compara si alguna de les assignatures de 2n
+                    curs existeix també a 1r curs, i si té un nombre de respostes
+                    menor a la constant THRESHOLD_MERGE_GROUP_MP_ANSWERS, afegeix
+                    els resultats al grup de 1r i suprimeix el de 2n. L'objectiu
+                    és integrar les respostes dels estudiants de 2n curs, però que
+                    repeteixen alguna UF d'un MP de 1r curs, amb el grup de 1r.
+
+        Entrada:    Diccionari amb els resultats.
+        Sortida:    Diccionari survey_avg_results_dict amb els resultats de 1r i 2n
+                    curs especificats fusionats i els corresponents de 2n curs
+                    eliminats. Diccionari amb els grups i el llistat de MP
+                    fusionats.
+                    Diccionari merged_grup_mp_dict amb els grups de 2n curs i mp
+                    respectius que han estat fusionats amb el corresponent de 1r
+                    curs per tractar-se de respostes de repetidors.
+        """
+        merged_grup_mp_dict = {}
+        for grup, objecte in survey_avg_results_dict.items():
+            if '2' in grup:
+                grup_2n = grup
+                objectes_dict = dict(survey_avg_results_dict[grup_2n].items())
+
+                for objecte, item in objectes_dict.items():
+                    if ('mp' in objecte.lower() and objectes_dict[objecte]['item1']['TOTAL RESPONSES'] <= self.THRESHOLD_MERGE_GROUP_MP_ANSWERS):
+                        
+                        try:
+                            grup_1r = grup_2n.replace('2', '1')
+                            for i in range(1, 5):
+                                survey_avg_results_dict[grup_1r][objecte]['item' + str(i)]['TOTAL POINTS'] += objectes_dict[objecte]['item' + str(i)]['TOTAL RESPONSES']
+                                survey_avg_results_dict[grup_1r][objecte]['item' + str(i)]['TOTAL RESPONSES'] += objectes_dict[objecte]['item' + str(i)]['TOTAL RESPONSES']
+                                survey_avg_results_dict[grup_1r][objecte]['item' + str(i)]['AVERAGE POINTS'] = (survey_avg_results_dict[grup_1r][objecte]['item' + str(i)]['TOTAL POINTS'] / survey_avg_results_dict[grup_1r][objecte]['item' + str(i)]['TOTAL RESPONSES'])
+
+                            if grup_2n not in merged_grup_mp_dict.keys():
+                                merged_grup_mp_dict[grup_2n] = []
+
+                            merged_grup_mp_dict[grup_2n].append(objecte)
+                            survey_avg_results_dict[grup_2n].pop(objecte, None)
+
+                        except:
+                            pass
+
+        return survey_avg_results_dict, merged_grup_mp_dict
+
+    def __replace_student_email_with_random_id(self, student_email, student_name, email_to_id_dict, id_to_email_and_name_dict):
         """
         Descripció: Reemplaça l'email de l'estudiant amb un ID aleatori únic, i actualitza el diccionari amb
                     l'email dels estudiants com a clau i la seva respectiva id com a valor, i el diccionari
@@ -826,47 +850,26 @@ class Worker:
             return email_to_id_dict, id_to_email_and_name_dict
 
         else:
-            return self.replace_student_email_with_random_id(student_email, student_name, email_to_id_dict, id_to_email_and_name_dict)
+            return self.__replace_student_email_with_random_id(student_email, student_name, email_to_id_dict, id_to_email_and_name_dict)
 
-    def anonymize_answers(self):
-        """anonymize_answers()
-        Descripció: Reemplaça l'email de l'estudiant amb un ID aleatori únic
-        Entrada:    Cap.
-        Sortida:    Diccionari id_to_email_and_name_dict amb l'identificador de cada
-                    estudiant com a clau, i el seu email i nom com a valors.
+    #TODO:NOT BEING USED: check if its correct    
+    #def find_avaluated_object(self, text):
         """
-        email_to_id_dict = {}
-        id_to_email_and_name_dict = {}
-        with open(self.SOURCE_FILE_STUDENTS_WITH_MP, 'r', encoding='utf-8') as alumnes:
-            alumnes_reader = csv.reader(alumnes)
-            next(alumnes, None)
-            for alumnes_row in alumnes_reader:
-                student_name = alumnes_row[0]
-                student_email = alumnes_row[1]
-                email_to_id_dict, id_to_email_and_name_dict = self.replace_student_email_with_random_id(student_email, student_name,email_to_id_dict, id_to_email_and_name_dict)
+        Descripció: Classifica els grups per departaments (Adminsitració i
+                    Informàtica)
+        Entrada:    String
+        Sortida:    String
+        """
+        """
+        grups_mapping_list = [
+            ('AF', 'Administració'), 
+            ('ASIX', 'Informàtica'), 
+            ('DAM', 'Informàtica'), 
+            ('GA', 'Administració'), 
+            ('SMX', 'Informàtica')
+        ]
 
-        with open(self.TMP_ANONYMIZED_STUDENT_ANSWERS, 'w', encoding='utf-8', newline='') as anonymized_respostes:
-            anonymized_respostes_writer = csv.writer(anonymized_respostes)
-
-            with open(self.SOURCE_FILE_STUDENT_ANSWERS, 'r', encoding='utf-8') as respostes:
-                respostes_reader = csv.reader(respostes)
-                respostes_reader_header_list = list(next(respostes_reader))
-                anonymized_respostes_writer.writerow([respostes_reader_header_list[0]] + ['ID'] + respostes_reader_header_list[2:])
-
-                for respostes_row in respostes_reader:
-                    r_email = respostes_row[1]
-
-                    if (r_email not in email_to_id_dict):
-                        email_to_id_dict, id_to_email_and_name_dict = self.replace_student_email_with_random_id(r_email, 'desconegut',email_to_id_dict, id_to_email_and_name_dict)
-                    
-                    student_id = email_to_id_dict.get(r_email)
-                    anonymized_respostes_writer.writerow([respostes_row[0]] + [student_id] + respostes_row[2:])
-            
-        return id_to_email_and_name_dict
-
-    def __clean_folder(self, folder):
-        if os.path.exists(folder):                
-            for f in os.listdir(folder):
-                fp = os.path.join(folder, f)
-                if os.path.isfile(fp):
-                    os.remove(fp)    
+        for k, v in grups_mapping_list:
+            if k in text:
+                return v
+        """
