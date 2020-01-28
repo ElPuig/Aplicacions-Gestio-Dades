@@ -18,6 +18,7 @@ LOG_LEVEL = 2
         [ ] Montar pruebas unitarias para comprobar que todo funciona (en carpeta test).
         [X] De ser posible, separar el core de la aplicación de consola (en carpeta core) para que se pueda usar como aplicación o como libreria        
         [ ] Para evitar las preguntas interactivas, se podrá especificar un fichero "yaml" como parámetro al invocar la app.
+        [ ] Existe una manera de auto-instalar dependencias con pip?
 
     Info:   https://docs.python.org/3/tutorial/modules.html
             https://www.python.org/dev/peps/pep-0008/
