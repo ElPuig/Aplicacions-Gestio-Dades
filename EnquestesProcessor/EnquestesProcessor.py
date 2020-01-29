@@ -9,7 +9,7 @@ LOG_LEVEL = 2
     #   1 = simple
     #   2 = detailed  
 
-"""EnquestesProcessor_3.0:
+"""EnquestesProcessor_3.0: 
 Fitxers d'entrada:
     - alumnes-mp.csv: llista dels alumnes matriculats a cada CF,
                     amb el seu nom complet, l'adreça Xeill, el cicle i curs,
