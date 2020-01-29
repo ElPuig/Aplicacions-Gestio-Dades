@@ -12,11 +12,11 @@ class Worker:
     TEMP_FOLDER = 'temp'
     REPORT_FILE_ADM = os.path.join(OUTPUT_FOLDER, 'informe_Dept_Admin.csv')
     REPORT_FILE_INF = os.path.join(OUTPUT_FOLDER, 'informe_Dept_Inform.csv')
-    REPORT_FILE_CENTRE = os.path.join(OUTPUT_FOLDER, 'resultats_respostes.csv')
-    RESULT_FILE_ANSWERS = os.path.join(OUTPUT_FOLDER, 'informe_Dept_Admin.csv')
+    REPORT_FILE_CENTRE = os.path.join(OUTPUT_FOLDER, 'informe_Centre.csv')
+    RESULT_FILE_ANSWERS = os.path.join(OUTPUT_FOLDER, 'resultats_respostes.csv')
     RESULT_FILE_ERRORS = os.path.join(OUTPUT_FOLDER, 'resultats_errades.csv')
     RESULT_FILE_STATISTICS = os.path.join(OUTPUT_FOLDER, 'estadística_respostes.csv')
-    RESULT_FILE_STUDENTS_WITH_AVALUATED_MP = os.path.join(OUTPUT_FOLDER, 'resultats_alumnes.csv')
+    RESULT_FILE_STUDENTS_WITH_AVALUATED_MP = os.path.join(OUTPUT_FOLDER, 'resultats_alumnes-respostes.csv')
     TMP_ANONYMIZED_STUDENT_ANSWERS = os.path.join(TEMP_FOLDER, 'respostes_anonimitzades.csv')
     TMP_FILE_ANSWERS = os.path.join(TEMP_FOLDER, 'resultats_tmp.csv')
     RECORD_FILE_ERRORS = os.path.join(TEMP_FOLDER, 'errades_rec.csv')
@@ -452,14 +452,13 @@ class Worker:
             report_dept_writer = csv.writer(report_dept)
             
             # Encapçalats
-            report_dept_writer.writerow(['GRUP', 'OBJECTE', 'ÍTEM 1', 'ÍTEM 2', 'ÍTEM 3','ÍTEM 4', 'NOMBRE RESPOSTES', 'COMENTARI'])
+            report_dept_writer.writerow(['GRUP', 'OBJECTE', 'ÍTEM 1', 'ÍTEM 2', 'ÍTEM 3', 'ÍTEM 4', 'NOMBRE RESPOSTES', 'COMENTARI'])
 
             with open(self.RESULT_FILE_STATISTICS, 'r', encoding='utf-8') as statistics:
                 statistics_reader = csv.DictReader(statistics)
 
                 for statistics_row in statistics_reader:
                     comments = ''
-
                     if (statistics_row['DEPARTAMENT'] == dept and 'mp' in statistics_row['OBJECTE'].lower()):
                         with open(self.RESULT_FILE_ANSWERS, 'r', encoding='utf-8') as resultats:
                             resultats_reader = csv.DictReader(resultats)
@@ -468,13 +467,13 @@ class Worker:
                                 if (statistics_row['GRUP'] == resultats_row['GRUP'] and statistics_row['OBJECTE'] == resultats_row['OBJECTE'] and resultats_row['MP-COMENTARI'] != ''):
                                     if comments != '': 
                                         comments += '\n' 
-                                        comments += resultats_row['MP-COMENTARI' ].replace('\n', ' ')
+                                    
+                                    comments += resultats_row['MP-COMENTARI' ].replace('\n', ' ')
                                 
                                 # Recupera els comentaris dels MP de 2n formats per
                                 # repetidors i fusionats amb els de 1r
                                 elif '1' in statistics_row['GRUP']:
                                     grup_2n = statistics_row['GRUP'].replace('1', '2')
-
                                     if grup_2n in merged_grup_mp_dict.keys():
                                         if statistics_row['OBJECTE'] in merged_grup_mp_dict[grup_2n]:
                                             if (grup_2n == resultats_row['GRUP'] and statistics_row['OBJECTE'] == resultats_row['OBJECTE'] and resultats_row['MP-COMENTARI'] != ''):

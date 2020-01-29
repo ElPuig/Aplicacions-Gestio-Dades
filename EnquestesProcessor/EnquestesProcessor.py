@@ -9,22 +9,7 @@ LOG_LEVEL = 2
     #   1 = simple
     #   2 = detailed  
 
-"""
-    FPS 20200121: ideas      
-        [X] Cambio de nombre: EnquestesProcessor_3.0.py o quizas eliminando el _3.0.py (quizas tenia sentido cuando era un solo fichero).
-        [X] Mostrar info de bienvenida, con versión y copyright.        
-        [X] Montar una opción verbose básica, para que muestre por consola lo que va haciendo.     
-        [X] Carpetas input y output, donde dejar y recoger los ficheros.        
-        [ ] Montar pruebas unitarias para comprobar que todo funciona (en carpeta test).
-        [X] De ser posible, separar el core de la aplicación de consola (en carpeta core) para que se pueda usar como aplicación o como libreria        
-        [ ] Para evitar las preguntas interactivas, se podrá especificar un fichero "yaml" como parámetro al invocar la app.
-
-    Info:   https://docs.python.org/3/tutorial/modules.html
-            https://www.python.org/dev/peps/pep-0008/
-            https://docs.python.org/3/library/unittest.html
-"""
-
-"""EnquestesProcessor_2.2:
+"""EnquestesProcessor_3.0:
 Fitxers d'entrada:
     - alumnes-mp.csv: llista dels alumnes matriculats a cada CF,
                     amb el seu nom complet, l'adreça Xeill, el cicle i curs,
@@ -49,20 +34,9 @@ Fitxers de sortida:
         * resultats_tmp.csv: conté les respostes vàlides amb la identificació
                             de l'estudiant
 
-Novetats respecte a la versió 2.1:
-    - modificacions per afegir als informes de departament els comentaris dels
-    estudiants de 2n curs que repeteixen alguna UF d'un MP de 1r curs i han
-    estat fusionats amb el grup de 1r
-
-Novetats respecte a la versió 2.2:
-    - modificacions per incorporar MP impartits a un mateix grup per més d'un
-      professor, i que a la nova versió del formulari són avaluats separadament
-      per l'alumnat
-
-Novetats respecte a la versió 2.3:
-    - al llarg del procés les dades dels estudiants són reemplaçades per un
-      identificador únic diferent en cada execució per garantitzar l'anonimat
-      de les respostes al llarg de tot el procés
+Novetats respecte a la versió 2.4:
+    - refactorització completa del codi
+    - incorporació d'un sistema de tests unitaris
 """
 
 def setup_options():
